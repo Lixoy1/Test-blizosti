@@ -169,6 +169,8 @@ async function loadParticipant() {
     }
     answers = sessionInfo.ownDraftAnswers || {};
     if (!Object.keys(answers).length) answers = loadDraft();
+    const firstUnanswered = questionSet.questions.findIndex((question) => !validateAnswer(question, answers[String(question.id)]));
+    currentIndex = firstUnanswered < 0 ? questionSet.questions.length - 1 : firstUnanswered;
     renderIntro();
   } catch (error) {
     renderError(error.message);
@@ -187,12 +189,13 @@ function renderIntro() {
         <div class="rule-list">
           <div class="rule-item"><span class="rule-icon">01</span><span>Отвечай самостоятельно, не обсуждая варианты с партнёром во время прохождения.</span></div>
           <div class="rule-item"><span class="rule-icon">02</span><span>Можно не знать точного ответа. В таком случае выбирай наиболее близкий вариант, а не тот, который выглядит правильным.</span></div>
-          <div class="rule-item"><span class="rule-icon">03</span><span>После согласия каждый ответ автоматически сохраняется на сервере. Можно закрыть страницу и продолжить по своей ссылке с другого устройства.</span></div>
+          <div class="rule-item"><span class="rule-icon">03</span><span>После согласия сервер сохраняет черновик и журнал изменений ответов с датой и временем. Это позволяет восстановить прохождение после перезапуска; личный журнал доступен тебе в экспорте.</span></div>
           <div class="rule-item"><span class="rule-icon">04</span><span>Завершённая версия остаётся в истории. Повторное прохождение создаёт новую версию и не заменяет прежнюю. После завершения обеих анкет участники видят общий отчёт и ответы друг друга.</span></div>
           <div class="rule-item"><span class="rule-icon">05</span><span>Это авторский проект для саморефлексии, а не диагноз и не научно-нормированный тест совместимости. В отчёте будут указаны ограничения переводов и интерпретаций.</span></div>
         </div>
         <label class="consent-box"><input type="checkbox" id="consent" ${consentAccepted ? 'checked' : ''}><span>Я понимаю, что мои ответы будут сохранены и после завершения обеих анкет станут доступны обоим участникам в общем отчёте. Я прохожу анкету добровольно и отвечаю честно.</span></label>
-        <div class="intro-actions"><span class="fine">125 вопросов · можно проходить по частям</span><button class="btn" id="start-quiz" ${consentAccepted ? '' : 'disabled'}>Начать отвечать <span>→</span></button></div>
+        <div class="intro-actions"><span class="fine">125 вопросов · ${currentIndex > 0 ? `продолжение с № ${currentIndex + 1}` : 'начало прохождения'}</span><button class="btn" id="start-quiz" ${consentAccepted ? '' : 'disabled'}>${currentIndex > 0 ? 'Продолжить' : 'Начать отвечать'} <span>→</span></button></div>
+        ${consentAccepted ? '<div class="report-actions" style="margin-top:14px"><button class="btn btn-quiet" id="delete-my-data">Удалить мои ответы и историю</button></div>' : ''}
       </section>
     </div>`;
   const checkbox = document.getElementById('consent');
@@ -201,6 +204,7 @@ function renderIntro() {
     consentAccepted = checkbox.checked;
     startButton.disabled = !consentAccepted;
   });
+  document.getElementById('delete-my-data')?.addEventListener('click', deleteMyData);
   startButton.addEventListener('click', async () => {
     if (!checkbox.checked) return;
     startButton.disabled = true;
