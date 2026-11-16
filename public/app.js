@@ -108,7 +108,7 @@ function renderHome() {
       </article>
       <div class="between" aria-hidden="true">♡</div>
       <article class="person-card poison">
-        <img src="/assets/poison.svg" alt="Образ участницы Полины" fetchpriority="high">
+        <img src="/assets/file_00000000a98c8210bddc88a74eb95263.png" alt="Образ участницы Полины" fetchpriority="high">
         <div class="person-meta"><small>участник B</small><strong>Полина</strong><span>свой взгляд на отношения</span></div>
       </article>
     </section>
