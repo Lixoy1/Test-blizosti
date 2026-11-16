@@ -32,7 +32,7 @@ const saveDraft = () => {
     const snapshot = JSON.stringify({ answers });
     draftInFlight = api(`/api/session/${encodeURIComponent(sessionToken)}/draft`, {
       method: 'PUT',
-      body: snapshot,
+      body: snapshot.slice(0, -1) + `, "versionNo": ${sessionInfo.currentVersionNo}}`,
     }).then(() => { lastDraftError = null; }).catch((error) => {
       lastDraftError = error;
       console.warn('Server draft save failed; local fallback remains available.', error);
@@ -46,7 +46,7 @@ const flushDraft = async () => {
   if (!sessionToken || !sessionInfo?.consented || sessionInfo?.ownCompleted) return;
   await api(`/api/session/${encodeURIComponent(sessionToken)}/draft`, {
     method: 'PUT',
-    body: JSON.stringify({ answers }),
+    body: JSON.stringify({ answers, versionNo: sessionInfo.currentVersionNo }),
   });
   lastDraftError = null;
 };
@@ -211,7 +211,7 @@ function renderIntro() {
     startButton.textContent = 'Сохраняем согласие…';
     try {
       await api(`/api/session/${encodeURIComponent(sessionToken)}/consent`, {
-        method: 'POST', body: JSON.stringify({ consent: true }),
+        method: 'POST', body: JSON.stringify({ consent: true, versionNo: sessionInfo.currentVersionNo }),
       });
       sessionInfo.consented = true;
       consentAccepted = true;
@@ -324,7 +324,7 @@ async function submitAnswers() {
   try {
     await flushDraft();
     await api(`/api/session/${encodeURIComponent(sessionToken)}/submit`, {
-      method: 'POST', body: JSON.stringify({ answers, consent: true }),
+      method: 'POST', body: JSON.stringify({ answers, consent: true, versionNo: sessionInfo.currentVersionNo }),
     });
     try { localStorage.removeItem(draftKey()); } catch (_) {}
     await loadParticipant();
