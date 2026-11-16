@@ -319,9 +319,12 @@ app.post('/api/session/:token/consent', requireDatabase, async (req, res) => {
   try {
     const participant = await getParticipant(req.params.token);
     if (!participant) return res.status(404).json({ error: 'Ссылка не найдена или недействительна.' });
+    if (Number(req.body.versionNo) !== participant.current_version_no) {
+      return res.status(409).json({ error: 'Эта ссылка открыта на предыдущей версии. Обнови страницу, чтобы продолжить актуальное прохождение.' });
+    }
     await pool.query(
-      'UPDATE participants SET consented_at = COALESCE(consented_at, NOW()) WHERE room_id = $1 AND role = $2',
-      [participant.room_id, participant.role]
+      'UPDATE participants SET consented_at = COALESCE(consented_at, NOW()) WHERE room_id = $1 AND role = $2 AND current_version_no = $3',
+      [participant.room_id, participant.role, participant.current_version_no]
     );
     res.json({ consented: true });
   } catch (error) {
@@ -337,13 +340,16 @@ app.put('/api/session/:token/draft', requireDatabase, async (req, res) => {
   try {
     const participant = await getParticipant(req.params.token);
     if (!participant) return res.status(404).json({ error: 'Ссылка не найдена или недействительна.' });
+    if (Number(req.body.versionNo) !== participant.current_version_no) return res.status(409).json({ error: 'Открыта предыдущая версия анкеты. Обнови страницу.' });
     if (!participant.consented_at) return res.status(403).json({ error: 'Сначала подтверди согласие на сохранение ответов.' });
     const existing = await client.query(
       'SELECT id FROM submissions WHERE room_id = $1 AND role = $2 AND version_no = $3',
       [participant.room_id, participant.role, participant.current_version_no]
     );
     if (existing.rowCount) return res.status(409).json({ error: 'Эта версия анкеты уже завершена.' });
+    if (Number(req.body.versionNo) !== participant.current_version_no) return res.status(409).json({ error: 'Открыта предыдущая версия анкеты. Обнови страницу.' });
     await client.query('BEGIN');
+    await client.query('SELECT id FROM participants WHERE room_id = $1 AND role = $2 FOR UPDATE', [participant.room_id, participant.role]);
     await writeDraftSnapshot(client, participant, req.body.answers);
     await client.query('COMMIT');
     res.json({ saved: true, versionNo: participant.current_version_no });
@@ -365,6 +371,7 @@ app.post('/api/session/:token/submit', requireDatabase, async (req, res) => {
   try {
     const participant = await getParticipant(req.params.token);
     if (!participant) return res.status(404).json({ error: 'Ссылка не найдена или недействительна.' });
+    if (Number(req.body.versionNo) !== participant.current_version_no) return res.status(409).json({ error: 'Открыта предыдущая версия анкеты. Обнови страницу.' });
     if (!participant.consented_at) return res.status(403).json({ error: 'Сначала подтверди согласие на сохранение ответов.' });
     await client.query('BEGIN');
     await client.query(
