@@ -113,8 +113,9 @@ function renderHome() {
       </article>
     </section>
     <div class="feature-row">
-      <span class="feature-pill"><b>60</b> прямых вопросов</span>
-      <span class="feature-pill"><b>6</b> важных тем</span>
+      <span class="feature-pill"><b>125</b> вопросов всего</span>
+      <span class="feature-pill"><b>60</b> о ваших отношениях</span>
+      <span class="feature-pill"><b>8</b> тематических блоков</span>
       <span class="feature-pill"><b>2</b> личных отчёта</span>
       <span class="feature-pill"><b>1</b> общий взгляд</span>
     </div>
