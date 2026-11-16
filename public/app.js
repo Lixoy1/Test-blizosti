@@ -340,15 +340,43 @@ async function loadReport() {
   }
 }
 
-function metricCard(dimension, profile, secondValue = null) {
+function metricCard(dimension, profile) {
   const metric = profile[dimension.id];
   if (!metric) return '';
   return `<article class="metric-card">
     <div class="metric-head"><strong>${escapeHtml(dimension.title)}</strong><span class="metric-value">${metric.average.toFixed(1)}<small style="font:10px var(--sans);color:var(--muted-2)"> / 5</small></span></div>
     <p>${escapeHtml(dimension.description)}</p>
     <div class="meter"><span style="width:${metric.average * 20}%"></span></div>
-    <div class="metric-foot"><span>${escapeHtml(metric.interpretation)}</span><span>${metric.count} показателей</span></div>
+    <div class="metric-foot"><span>${escapeHtml(metric.interpretation)}</span><span>${metric.count} пунктов</span></div>
   </article>`;
+}
+
+function renderMetricSections(profile) {
+  const groups = [
+    { id: 'relationship', title: 'Ваше восприятие отношений' },
+    { id: 'personality', title: 'Психологический портрет · Big Five' },
+    { id: 'love', title: 'Три грани любви · TLS-15' },
+  ];
+  return groups.map((group) => {
+    const dimensions = questionSet.dimensions.filter((dimension) => dimension.group === group.id);
+    return `<section class="report-section">
+      <h3 class="report-title" style="font-size:23px">${escapeHtml(group.title)}</h3>
+      <div class="report-grid">${dimensions.map((dimension) => metricCard(dimension, profile)).join('')}</div>
+    </section>`;
+  }).join('');
+}
+
+function renderPersonalAnswers(answersObj) {
+  return questionSet.questions.map((q) => {
+    const value = answersObj[String(q.id)];
+    let label = value;
+    if (q.type === 'single') label = q.options.find((option) => option.value === value)?.label || value;
+    if (q.type === 'scale') {
+      const scale = questionSet.scales?.[q.scaleType || 'default'] || questionSet.scale;
+      label = `${value} / 5 · ${scale.find((option) => option.value === value)?.label || ''}`;
+    }
+    return `<div class="answer-review"><strong>${String(q.id).padStart(3,'0')}. ${escapeHtml(q.text)}</strong><p>${safeText(label)}</p></div>`;
+  }).join('');
 }
 
 function renderPersonalAnswers(answersObj) {
@@ -361,8 +389,9 @@ function renderPersonalAnswers(answersObj) {
   }).join('');
 }
 
-function comparisonRows(comparison) {
-  return comparison.dimensionComparison.map((item) => `
+function comparisonRows(items) {
+  if (!items?.length) return '<p class="fine">Нет данных для сравнения.</p>';
+  return items.map((item) => `
     <div class="comparison-row">
       <div class="comparison-name"><strong>${escapeHtml(item.title)}</strong><span class="match-tag">${escapeHtml(item.match)}</span></div>
       <div class="dual-bars">
@@ -371,6 +400,20 @@ function comparisonRows(comparison) {
       </div>
     </div>`).join('');
 }
+
+function personalityRows(personality) {
+  return personality.traits.map((item) => `
+    <article class="trait-compare">
+      <div class="comparison-name"><strong>${escapeHtml(item.title)}</strong><span class="match-tag">${escapeHtml(item.classification)}</span></div>
+      <div class="dual-bars">
+        <div class="dual-line"><span>Василий</span><div class="meter"><span style="width:${(item.a || 0) * 20}%"></span></div><b>${item.a === null ? '—' : item.a.toFixed(1)}</b></div>
+        <div class="dual-line"><span>Полина</span><div class="meter"><span class="meter-b" style="width:${(item.b || 0) * 20}%"></span></div><b>${item.b === null ? '—' : item.b.toFixed(1)}</b></div>
+      </div>
+      <p>${escapeHtml(item.possibleDynamic)}</p>
+    </article>`).join('');
+}
+
+
 
 function questionDifferenceItems(items) {
   if (!items?.length) return '<p class="fine">В этом разделе нет заметных различий в выбранных ответах.</p>';
@@ -382,19 +425,106 @@ function questionDifferenceItems(items) {
 
 function renderComparison(report) {
   const comparison = report.comparison;
-  const { questions } = comparison;
+  const questions = comparison.questions;
+  const personality = comparison.personality;
+  const biggestPersonalityDifferences = personality.different.map((item) => item.title);
+  const closeTraits = personality.similar.map((item) => item.title);
+  const traitSummary = `
+    <div class="compat-summary">
+      <div class="summary-tile"><span>Похожие оценки</span><strong>${closeTraits.length}</strong><small>${closeTraits.length ? escapeHtml(closeTraits.join(' · ')) : 'Явных совпадений по чертам нет'}</small></div>
+      <div class="summary-tile"><span>Выраженные различия</span><strong>${biggestPersonalityDifferences.length}</strong><small>${biggestPersonalityDifferences.length ? escapeHtml(biggestPersonalityDifferences.join(' · ')) : 'Нет больших разрывов'}</small></div>
+    </div>`;
   return `
     <section class="report-section">
       <div class="eyebrow">два взгляда рядом</div><h2 class="report-title">Общий сравнительный отчёт</h2>
-      <p class="report-subtitle">Это не итоговый балл совместимости. Здесь видно, где ваши самооценки близки, а где есть различия, которые стоит обсудить.</p>
-      <div class="panel comparison-card">${comparisonRows(comparison)}</div>
-      <div class="report-section"><h3 class="report-title" style="font-size:23px">Ответы, в которых вы разошлись</h3><p class="report-subtitle">Самые заметные различия по шкалам и прямые выборы.</p>${questionDifferenceItems(questions.numericGaps.filter((x) => x.gap > 1).slice(0,8))}${questionDifferenceItems(questions.differentChoices)}</div>
-      <div class="report-section"><h3 class="report-title" style="font-size:23px">Ваши ответы своими словами</h3><p class="report-subtitle">Текстовые ответы не оцениваются баллами — их смысл нужно обсуждать, а не превращать в рейтинг.</p>
-        <div class="compare-list">${questions.writtenAnswers.map((item) => `<article class="compare-item"><h4>${String(item.id).padStart(2,'0')}. ${escapeHtml(item.text)}</h4><div class="text-pair"><div><b>Василий</b>${safeText(item.a)}</div><div><b>Полина</b>${safeText(item.b)}</div></div></article>`).join('')}</div>
-      </div>
+      <p class="report-subtitle">Здесь не будет искусственного процента «совместимости». Мы сравниваем отдельные области, чтобы было видно, где вы похожи, где различаетесь и что можно обсудить.</p>
+
+      <section class="report-section">
+        <h3 class="report-title" style="font-size:25px">Характер и совместимость</h3>
+        <p class="report-subtitle">Пять черт Big Five. Близкие оценки означают сходство самоописания, а не автоматическую гарантию гармонии. Различия не являются недостатком: важнее то, как вы договариваетесь.</p>
+        ${traitSummary}
+        <div class="panel comparison-card personality-card">${personalityRows(personality)}</div>
+        <div class="report-note">${escapeHtml(personality.note)}</div>
+      </section>
+
+      <section class="report-section">
+        <h3 class="report-title" style="font-size:25px">Романтическая связь и влечение</h3>
+        <p class="report-subtitle">Три компонента TLS-15 — близость, страсть и обязательство. Профили могут быть разными: важно не только наличие чувств, но и то, одинаково ли вы воспринимаете их интенсивность.</p>
+        <div class="panel comparison-card">${comparisonRows(comparison.love)}</div>
+      </section>
+
+      <section class="report-section">
+        <h3 class="report-title" style="font-size:25px">Совместимость в реальных отношениях</h3>
+        <p class="report-subtitle">Доверие, взаимность, инициатива, встреча и взгляд на будущее.</p>
+        <div class="panel comparison-card">${comparisonRows(comparison.relationship)}</div>
+      </section>
+
+      <section class="report-section">
+        <h3 class="report-title" style="font-size:23px">Ответы, в которых вы разошлись</h3>
+        <p class="report-subtitle">Самые заметные расхождения по отдельным утверждениям и прямым выборам.</p>
+        ${questionDifferenceItems(questions.numericGaps.filter((item) => item.gap > 1).slice(0,12))}
+        ${questionDifferenceItems(questions.differentChoices)}
+      </section>
+
+      <section class="report-section">
+        <h3 class="report-title" style="font-size:23px">Ваши ответы своими словами</h3>
+        <p class="report-subtitle">Текстовые ответы не оцениваются баллами. Их смысл лучше обсуждать, а не превращать в рейтинг.</p>
+        <div class="compare-list">${questions.writtenAnswers.map((item) => `<article class="compare-item"><h4>${String(item.id).padStart(3,'0')}. ${escapeHtml(item.text)}</h4><div class="text-pair"><div><b>Василий</b>${safeText(item.a)}</div><div><b>Полина</b>${safeText(item.b)}</div></div></article>`).join('')}</div>
+      </section>
       <div class="report-note">${escapeHtml(comparison.note)}</div>
     </section>`;
 }
+
+function renderAttemptHistory(history) {
+  if (!history || history.length <= 1) return '';
+  return `<details class="report-section"><summary>История предыдущих прохождений (${history.length})</summary>
+    <div class="details-body attempt-history">${history.map((item) => {
+      const date = new Date(item.completed_at).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
+      return `<div class="attempt-row"><strong>Версия ${item.version_no}</strong><span>${escapeHtml(date)}</span><small>${item.edits} изменений ответов в черновике</small></div>`;
+    }).join('')}</div>
+  </details>`;
+}
+
+async function startNewAttempt() {
+  if (!window.confirm('Начать новое прохождение? Предыдущие завершённые ответы и история останутся сохранены как отдельная версия.')) return;
+  try {
+    const result = await api(`/api/session/${encodeURIComponent(sessionToken)}/new-attempt`, { method: 'POST', body: '{}' });
+    try { localStorage.removeItem(draftKey()); } catch (_) {}
+    sessionInfo.currentVersionNo = result.versionNo;
+    sessionInfo.consented = false;
+    sessionInfo.ownCompleted = false;
+    consentAccepted = false;
+    answers = {};
+    currentIndex = 0;
+    renderIntro();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function deleteMyData() {
+  const first = window.confirm('Удалить все твои черновики, завершённые версии и журнал изменений? Это действие нельзя отменить.');
+  if (!first) return;
+  const second = window.confirm('Подтверди ещё раз: удалить именно твои ответы и историю из этого пространства?');
+  if (!second) return;
+  try {
+    await api(`/api/session/${encodeURIComponent(sessionToken)}/data`, { method: 'DELETE' });
+    try {
+      const prefix = `${DRAFT_PREFIX}${sessionToken}`;
+      Object.keys(localStorage).filter((key) => key.startsWith(prefix)).forEach((key) => localStorage.removeItem(key));
+    } catch (_) {}
+    sessionToken = null;
+    sessionInfo = null;
+    answers = {};
+    renderHome();
+    toast('Твои ответы и журнал удалены.', 'success');
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+
 
 function downloadReport(report) {
   const payload = {
@@ -420,34 +550,45 @@ function downloadReport(report) {
 
 function renderReport(report) {
   const own = report.ownReport;
-  const profileCards = questionSet.dimensions.map((dimension) => metricCard(dimension, own.profile)).join('');
+  const profileSections = renderMetricSections(own.profile);
   const completed = new Date(own.completedAt).toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short' });
+  const commonActions = `
+    ${renderAttemptHistory(own.history)}
+    <div class="report-actions">
+      <button class="btn btn-secondary" id="new-attempt">Пройти заново · новая версия</button>
+      <button class="btn btn-quiet" id="delete-my-data">Удалить мои ответы и историю</button>
+    </div>`;
   if (!report.partnerCompleted) {
     app.innerHTML = `
       <div class="content-wrap">
-        <div class="page-head"><div class="eyebrow">первая часть готова</div><h1>Твой взгляд сохранён.</h1><p>Ты ответил(а) на все вопросы. Личный профиль уже сформирован. Общая картина появится, когда второй участник завершит свою анкету.</p><span class="room-label" style="margin-top:15px"><i></i> ${escapeHtml(sessionInfo.displayName)} · завершено ${escapeHtml(completed)}</span></div>
-        <section class="report-section"><h2 class="report-title">Твой личный профиль</h2><p class="report-subtitle">Показатели отражают твои ответы, а не объективную оценку отношений.</p><div class="report-grid">${profileCards}</div></section>
-        <section class="panel waiting-card report-section"><div class="waiting-heart">♥</div><h2>Теперь очередь второго взгляда</h2><p>Общий сравнительный отчёт откроется автоматически после завершения второй анкеты. Вернись по своей ссылке позже — она остаётся доступной.</p><button class="btn btn-secondary" id="refresh-report">Проверить, завершена ли вторая анкета</button></section>
-        <details class="report-section"><summary>Мои ответы на ключевые вопросы</summary><div class="details-body report-answers">${renderPersonalAnswers(own.answers)}</div></details>
-        <div class="report-actions"><button class="btn btn-secondary" id="print-report">Сохранить личный отчёт в PDF</button><button class="btn btn-quiet" id="download-report">Экспортировать ответы JSON</button></div>
-        <div class="report-note">Ответы другого участника пока скрыты. После его согласованного завершения оба получат доступ к общей сравнительной части.</div>
+        <div class="page-head"><div class="eyebrow">твой взгляд сохранён</div><h1>Твоя история <em style="color:var(--gold-bright)">зафиксирована.</em></h1><p>Ты ответил(а) на все 125 вопросов. Личный профиль уже сформирован. Общая картина появится, когда второй участник завершит свою анкету.</p><span class="room-label" style="margin-top:15px"><i></i> ${escapeHtml(own.participant)} · версия ${own.versionNo} · ${escapeHtml(completed)}</span></div>
+        ${profileSections}
+        <section class="panel waiting-card report-section"><div class="waiting-heart">♥</div><h2>Теперь очередь второго взгляда</h2><p>Общий сравнительный отчёт откроется автоматически после завершения второй анкеты. Вернись по своей ссылке позже — твоя завершённая версия останется в истории.</p><button class="btn btn-secondary" id="refresh-report">Проверить вторую анкету</button></section>
+        <details class="report-section"><summary>Все мои ответы · 125 вопросов</summary><div class="details-body report-answers">${renderPersonalAnswers(own.answers)}</div></details>
+        <div class="report-actions"><button class="btn" id="print-report">Сохранить личный отчёт в PDF</button><button class="btn btn-secondary" id="download-report">Экспортировать ответы JSON</button></div>
+        ${commonActions}
+        <div class="report-note">Ответы другого участника пока скрыты. После его согласованного завершения оба получат доступ к общему сравнительному отчёту. IPIP и TLS-15 здесь используются как описательные инструменты; русские формулировки не являются отдельной клинической диагностикой.</div>
       </div>`;
   } else {
     const partner = report.partnerReport;
     app.innerHTML = `
       <div class="content-wrap">
-        <div class="page-head"><div class="eyebrow">оба взгляда собраны</div><h1>Теперь видно <em style="color:var(--gold-bright)">между вами.</em></h1><p>Две самостоятельные анкеты завершены. Здесь собраны твой личный профиль и общая картина совпадений и расхождений.</p><span class="room-label" style="margin-top:15px"><i></i> ${escapeHtml(own.participant)} + ${escapeHtml(partner.participant)}</span></div>
-        <section class="report-section"><h2 class="report-title">Твой личный профиль</h2><p class="report-subtitle">Завершено ${escapeHtml(completed)}. Смотри на значения как на отражение собственных ответов.</p><div class="report-grid">${profileCards}</div></section>
+        <div class="page-head"><div class="eyebrow">оба взгляда собраны</div><h1>Теперь видно <em style="color:var(--gold-bright)">между вами.</em></h1><p>Две самостоятельные анкеты завершены. Ниже — личный портрет, характер, влечение, совпадения и темы, в которых ваши взгляды расходятся.</p><span class="room-label" style="margin-top:15px"><i></i> ${escapeHtml(own.participant)} · версия ${own.versionNo} &nbsp; + &nbsp; ${escapeHtml(partner.participant)} · версия ${partner.versionNo}</span></div>
+        ${profileSections}
         ${renderComparison(report)}
-        <details class="report-section"><summary>Мои ответы на ключевые вопросы</summary><div class="details-body report-answers">${renderPersonalAnswers(own.answers)}</div></details>
+        <details class="report-section"><summary>Все мои ответы · 125 вопросов</summary><div class="details-body report-answers">${renderPersonalAnswers(own.answers)}</div></details>
+        ${commonActions}
         <div class="report-actions"><button class="btn" id="print-report">Сохранить отчёт в PDF</button><button class="btn btn-secondary" id="download-report">Экспортировать JSON</button></div>
-        <div class="report-note">У каждого участника есть личная ссылка. Не публикуйте её: она открывает ваши отчёты и сохранённые ответы. Оценки показывают самоотчёт, не доказывают любовь и не заменяют разговор.</div>
+        <div class="report-note">У каждого участника есть личная ссылка. Не публикуйте её: она открывает сохранённые ответы и отчёты. Оценки отражают самоописание и самооценку; они не доказывают любовь, не предсказывают будущее и не заменяют разговор.</div>
       </div>`;
   }
   document.getElementById('refresh-report')?.addEventListener('click', loadReport);
   document.getElementById('print-report')?.addEventListener('click', () => window.print());
   document.getElementById('download-report')?.addEventListener('click', () => downloadReport(report));
+  document.getElementById('new-attempt')?.addEventListener('click', startNewAttempt);
+  document.getElementById('delete-my-data')?.addEventListener('click', deleteMyData);
 }
+
 
 function renderError(message) {
   app.innerHTML = `<div class="content-wrap"><section class="panel waiting-card"><div class="waiting-heart">♡</div><h2>Не получилось открыть пространство</h2><p>${escapeHtml(message || 'Проверь ссылку и попробуй ещё раз.')}</p><a class="btn btn-secondary" href="/">На главную</a></section></div>`;
