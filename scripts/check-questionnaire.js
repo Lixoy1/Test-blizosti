@@ -49,12 +49,16 @@ for (const trait of ['extraversion','agreeableness','conscientiousness','stabili
 for (const component of ['intimacy','passion','commitment']) {
   assert.equal(data.questions.filter((q) => q.score?.dimension === `love_${component}`).length, 5, `TLS-15 component ${component} must have 5 items`);
 }
-for (const filename of ['optimist.webp', 'poison.webp']) {
-  const imagePath = path.join(__dirname, '..', 'public', 'assets', filename);
-  const buffer = fs.readFileSync(imagePath);
-  assert.ok(buffer.length > 1000, `Artwork ${filename} must not be empty`);
-  assert.equal(buffer.toString('ascii', 0, 4), 'RIFF', `Artwork ${filename} must be a WebP file`);
-  assert.equal(buffer.toString('ascii', 8, 12), 'WEBP', `Artwork ${filename} must be a WebP file`);
-}
+const optimistPath = path.join(__dirname, '..', 'public', 'assets', 'optimist.webp');
+const optimistBuffer = fs.readFileSync(optimistPath);
+assert.ok(optimistBuffer.length > 1000, 'Optimist artwork must not be empty');
+assert.equal(optimistBuffer.toString('ascii', 0, 4), 'RIFF', 'Optimist artwork must be WebP');
+assert.equal(optimistBuffer.toString('ascii', 8, 12), 'WEBP', 'Optimist artwork must be WebP');
+
+const poisonPath = path.join(__dirname, '..', 'public', 'assets', 'poison.svg');
+const poisonSvg = fs.readFileSync(poisonPath, 'utf8');
+assert.ok(poisonSvg.length > 1000, 'Poison SVG artwork must not be empty');
+assert.match(poisonSvg, /<svg[\\s>]/i, 'Poison artwork must be an SVG');
+assert.match(poisonSvg, /POISON/, 'Poison artwork must include its visual mark');
 assert.ok(data.scoringNotes?.personality && data.scoringNotes?.love && data.scoringNotes?.compatibility, 'Scoring limitations must be documented');
-console.log('Questionnaire check passed: 125 mandatory items, 8 blocks, Big Five 50, TLS-15 15, 15 dimensions, 2 WebP assets.');
+console.log('Questionnaire check passed: 125 mandatory items, 8 blocks, Big Five 50, TLS-15 15, 15 dimensions, Optimist WebP and Poison SVG assets.');
