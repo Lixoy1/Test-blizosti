@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Демо-отчёт — Между нами</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#111019;color:#f4eee8;font:16px/1.5 system-ui,sans-serif;padding:24px;max-width:720px;margin:auto}.panel{background:#211e2c;border:1px solid #51485a;border-radius:20px;padding:22px}h1{font:32px/1.1 Georgia,serif;margin:0 0 12px}.muted{color:#aaa2b2}.btn{display:block;text-align:center;text-decoration:none;border:0;border-radius:30px;padding:15px 22px;background:linear-gradient(100deg,#f1d89e,#e5b5c4);color:#201923;font-weight:700;font-size:16px;width:100%;margin:16px 0;cursor:pointer}.btn.secondary{background:#302b3b;color:#f4eee8;border:1px solid #61576a}.btn:disabled{opacity:.5}.log{white-space:pre-wrap;overflow-wrap:anywhere;background:#17151e;border-radius:12px;padding:14px;min-height:70px;font-size:14px}.ok{color:#9fe0b2}.bad{color:#ff9c9c}#links{display:none;margin-top:18px}
+</style></head><body><section class="panel">
+<div class="muted">ДЕМОНСТРАЦИОННЫЙ ПРОСМОТР</div><h1>Посмотреть готовый отчёт</h1>
+<p>Создаст отдельную тестовую комнату и заполнит обе анкеты демонстрационными ответами. После этого откроются настоящие страницы личного и общего отчётов сайта.</p>
+<p class="muted">Это синтетические ответы, не твои и не Полинины. Комната останется отдельной тестовой записью в базе.</p>
+<button class="btn" id="run">Сформировать демонстрационный отчёт</button><div class="log" id="log">Ожидание запуска…</div>
+<div id="links"><h2>Отчёты готовы</h2><p class="muted">Открой любой вариант. Внутри каждого личного отчёта уже будет общее сравнение двух тестовых участников.</p><a class="btn" id="a" target="_blank" rel="noopener">Открыть отчёт Василия</a><a class="btn secondary" id="b" target="_blank" rel="noopener">Открыть отчёт Полины</a></div>
+</section>
+<script>
+const logEl=document.getElementById('log'),button=document.getElementById('run');
+function log(m,ok=true){const d=document.createElement('div');d.className=ok?'ok':'bad';d.textContent=(ok?'✓ ':'✕ ')+m;logEl.append(d)}
+async function api(url,options={}){const r=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'HTTP '+r.status);return d}
+function makeAnswers(qs,variant){const out={};for(const q of qs){if(q.type==='scale')out[String(q.id)]=variant===0?2:4;else if(q.type==='single'){if(!q.options?.length)throw new Error('Нет вариантов у вопроса '+q.id);out[String(q.id)]=q.options[variant===0?0:q.options.length-1].value}else if(q.type==='text'){const n=q.minLength||12;out[String(q.id)]=(variant===0?'Демонстрационный ответ участника номер один. ':'Демонстрационный ответ участника номер два. ').repeat(30).slice(0,Math.max(n,12))}else throw new Error('Неизвестный тип вопроса '+q.type)}return out}
+async function run(){button.disabled=true;logEl.textContent='';document.getElementById('links').style.display='none';try{
+const qres=await fetch('/questions.json',{cache:'no-store'});if(!qres.ok)throw new Error('Не удалось загрузить вопросы');const data=await qres.json();if(data.questions?.length!==125)throw new Error('Ожидалось 125 вопросов');
+log('Загружены 125 вопросов');const room=await api('/api/rooms',{method:'POST',body:'{}'});const ta=new URL(room.participantUrl).pathname.split('/').pop(),tb=new URL(room.inviteUrl).pathname.split('/').pop();log('Создана отдельная демонстрационная комната');
+const aa=makeAnswers(data.questions,0),ab=makeAnswers(data.questions,1);
+for(const token of [ta,tb])await api('/api/session/'+encodeURIComponent(token)+'/consent',{method:'POST',body:JSON.stringify({consent:true,versionNo:1})});log('Согласие сохранено для обеих тестовых ролей');
+await api('/api/session/'+encodeURIComponent(ta)+'/submit',{method:'POST',body:JSON.stringify({answers:aa,consent:true,versionNo:1})});log('Первая демонстрационная анкета отправлена');
+const first=await api('/api/report/'+encodeURIComponent(ta));if(first.partnerCompleted!==false||!first.ownReport)throw new Error('Личный отчёт до второй отправки не сформирован корректно');log('Проверен личный отчёт первой стороны и скрытие ответов партнёра');
+await api('/api/session/'+encodeURIComponent(tb)+'/submit',{method:'POST',body:JSON.stringify({answers:ab,consent:true,versionNo:1})});log('Вторая демонстрационная анкета отправлена');
+for(const token of [ta,tb]){const report=await api('/api/report/'+encodeURIComponent(token));if(!report.partnerCompleted||!report.partnerReport||!report.comparison)throw new Error('Не сформировалось сравнение для одной из сторон')}
+log('Оба личных отчёта и общее сравнение готовы');
+document.getElementById('a').href=room.participantUrl;document.getElementById('b').href=room.inviteUrl;document.getElementById('links').style.display='block';
+}catch(e){log('Ошибка: '+e.message,false)}finally{button.disabled=false}}
+button.addEventListener('click',run);
+</script></body></html>
