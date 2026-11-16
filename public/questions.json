@@ -1,6 +1,6 @@
 {
   "title": "Между нами",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "scale": [
     {
       "value": 1,
@@ -59,6 +59,18 @@
       "title": "Честность и личный выбор",
       "subtitle": "Прямые ответы о намерениях и следующих шагах",
       "short": "Выбор"
+    },
+    {
+      "id": "personality",
+      "title": "Характер и психологический портрет",
+      "subtitle": "Как ты обычно устроен(а), реагируешь и взаимодействуешь с миром",
+      "short": "Характер"
+    },
+    {
+      "id": "love",
+      "title": "Три грани любви и влечения",
+      "subtitle": "Близость, страсть и готовность сохранять связь",
+      "short": "Любовь"
     }
   ],
   "questions": [
@@ -733,38 +745,941 @@
         "dimension": "future",
         "fromOption": true
       }
+    },
+    {
+      "id": 61,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я легко становлюсь душой компании.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_extraversion",
+        "reverse": false
+      }
+    },
+    {
+      "id": 62,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я мало беспокоюсь о других людях.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_agreeableness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 63,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я всегда бываю подготовлен(а) заранее.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_conscientiousness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 64,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я легко испытываю стресс.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_stability",
+        "reverse": true
+      }
+    },
+    {
+      "id": 65,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "У меня богатый словарный запас.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_openness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 66,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я неразговорчив(а).",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_extraversion",
+        "reverse": true
+      }
+    },
+    {
+      "id": 67,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Мне интересны люди.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_agreeableness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 68,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я часто оставляю свои вещи где попало.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_conscientiousness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 69,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Большую часть времени я спокоен(на).",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_stability",
+        "reverse": false
+      }
+    },
+    {
+      "id": 70,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Мне трудно понимать абстрактные идеи.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_openness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 71,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я чувствую себя свободно в окружении людей.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_extraversion",
+        "reverse": false
+      }
+    },
+    {
+      "id": 72,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я могу оскорбить человека.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_agreeableness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 73,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я внимателен(на) к деталям.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_conscientiousness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 74,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я часто тревожусь из-за разных вещей.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_stability",
+        "reverse": true
+      }
+    },
+    {
+      "id": 75,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "У меня богатое воображение.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_openness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 76,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я предпочитаю держаться в тени.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_extraversion",
+        "reverse": true
+      }
+    },
+    {
+      "id": 77,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я сопереживаю чувствам других людей.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_agreeableness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 78,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я часто всё делаю неаккуратно.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_conscientiousness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 79,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я редко испытываю уныние.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_stability",
+        "reverse": false
+      }
+    },
+    {
+      "id": 80,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Меня не интересуют абстрактные идеи.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_openness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 81,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я легко начинаю разговор.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_extraversion",
+        "reverse": false
+      }
+    },
+    {
+      "id": 82,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Меня мало волнуют проблемы других людей.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_agreeableness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 83,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я стараюсь сразу выполнять необходимые дела.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_conscientiousness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 84,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Меня легко вывести из равновесия.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_stability",
+        "reverse": true
+      }
+    },
+    {
+      "id": 85,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "У меня часто появляются интересные идеи.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_openness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 86,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Мне обычно нечего сказать.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_extraversion",
+        "reverse": true
+      }
+    },
+    {
+      "id": 87,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "У меня доброе сердце.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_agreeableness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 88,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я часто забываю возвращать вещи на место.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_conscientiousness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 89,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я легко расстраиваюсь.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_stability",
+        "reverse": true
+      }
+    },
+    {
+      "id": 90,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "У меня слабое воображение.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_openness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 91,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "На вечеринках я общаюсь со многими разными людьми.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_extraversion",
+        "reverse": false
+      }
+    },
+    {
+      "id": 92,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я не очень интересуюсь другими людьми.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_agreeableness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 93,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Мне нравится порядок.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_conscientiousness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 94,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Моё настроение часто меняется.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_stability",
+        "reverse": true
+      }
+    },
+    {
+      "id": 95,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я быстро схватываю новую информацию.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_openness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 96,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Мне не нравится привлекать к себе внимание.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_extraversion",
+        "reverse": true
+      }
+    },
+    {
+      "id": 97,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я нахожу время для других людей.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_agreeableness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 98,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я уклоняюсь от своих обязанностей.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_conscientiousness",
+        "reverse": true
+      }
+    },
+    {
+      "id": 99,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "У меня часто бывают перепады настроения.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_stability",
+        "reverse": true
+      }
+    },
+    {
+      "id": 100,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я люблю использовать точные и сложные слова.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_openness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 101,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я не против быть в центре внимания.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_extraversion",
+        "reverse": false
+      }
+    },
+    {
+      "id": 102,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я чувствую эмоции других людей.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_agreeableness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 103,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я придерживаюсь расписания.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_conscientiousness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 104,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Меня легко раздражают мелочи.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_stability",
+        "reverse": true
+      }
+    },
+    {
+      "id": 105,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я часто размышляю над разными вопросами.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_openness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 106,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "С незнакомыми людьми я обычно молчалив(а).",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_extraversion",
+        "reverse": true
+      }
+    },
+    {
+      "id": 107,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Рядом со мной людям обычно легко и спокойно.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_agreeableness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 108,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я требователен(на) к качеству своей работы.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_conscientiousness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 109,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "Я часто испытываю грусть.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_stability",
+        "reverse": true
+      }
+    },
+    {
+      "id": 110,
+      "block": "personality",
+      "type": "scale",
+      "scaleType": "ipip",
+      "text": "У меня много идей.",
+      "hint": "Оценивай то, как ты обычно ведёшь себя сейчас, а не то, каким(ой) хотел(а) бы быть.",
+      "score": {
+        "dimension": "personality_openness",
+        "reverse": false
+      }
+    },
+    {
+      "id": 111,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "У меня тёплая связь с партнёром.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_intimacy"
+      }
+    },
+    {
+      "id": 112,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Я получаю от партнёра значительную эмоциональную поддержку.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_intimacy"
+      }
+    },
+    {
+      "id": 113,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Партнёр занимает очень важное место в моей жизни.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_intimacy"
+      }
+    },
+    {
+      "id": 114,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Мне комфортно в нашей связи.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_intimacy"
+      }
+    },
+    {
+      "id": 115,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Я чувствую, что партнёр действительно меня понимает.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_intimacy"
+      }
+    },
+    {
+      "id": 116,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "В нашей связи много романтики.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_passion"
+      }
+    },
+    {
+      "id": 117,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Я считаю своего партнёра лично привлекательным.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_passion"
+      }
+    },
+    {
+      "id": 118,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Мне трудно представить, что другой человек мог бы сделать меня таким же счастливым.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_passion"
+      }
+    },
+    {
+      "id": 119,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "В моей связи с партнёром есть что-то почти волшебное.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_passion"
+      }
+    },
+    {
+      "id": 120,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Моя связь с партнёром наполнена страстью.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_passion"
+      }
+    },
+    {
+      "id": 121,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Я уверен(а) в стабильности нашей связи.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_commitment"
+      }
+    },
+    {
+      "id": 122,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Моё решение быть с партнёром — серьёзное и прочное.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_commitment"
+      }
+    },
+    {
+      "id": 123,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Я уверен(а) в своей любви к партнёру.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_commitment"
+      }
+    },
+    {
+      "id": 124,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Я воспринимаю нашу связь как долгосрочную.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_commitment"
+      }
+    },
+    {
+      "id": 125,
+      "block": "love",
+      "type": "scale",
+      "scaleType": "tls",
+      "text": "Я чувствую ответственность перед партнёром.",
+      "hint": "Отвечай о том, как ты воспринимаешь вашу связь сейчас. Не о том, как хотелось бы в идеале.",
+      "score": {
+        "dimension": "love_commitment"
+      }
     }
   ],
   "dimensions": [
     {
       "id": "closeness",
       "title": "Эмоциональная близость",
-      "description": "Значимость партнёра, привязанность и желание быть рядом."
+      "description": "Значимость партнёра, привязанность и желание быть рядом.",
+      "group": "relationship"
     },
     {
       "id": "trust",
       "title": "Доверие и безопасность",
-      "description": "Открытость, искренность и ощущение надёжности."
+      "description": "Открытость, искренность и ощущение надёжности.",
+      "group": "relationship"
     },
     {
       "id": "mutuality",
       "title": "Взаимность",
-      "description": "Готовность участвовать, учитывать потребности друг друга и прояснять статус."
+      "description": "Готовность участвовать, учитывать потребности и прояснять статус.",
+      "group": "relationship"
     },
     {
       "id": "reality",
       "title": "Готовность к реальной встрече",
-      "description": "Намерение увидеться и перейти от переписки к реальному контакту."
+      "description": "Намерение увидеться и перейти к реальному контакту.",
+      "group": "relationship"
     },
     {
       "id": "future",
       "title": "Ориентация на будущее",
-      "description": "Готовность учитывать обстоятельства и обсуждать совместную жизнь."
+      "description": "Готовность учитывать обстоятельства и обсуждать совместную жизнь.",
+      "group": "relationship"
     },
     {
       "id": "initiative",
       "title": "Инициатива и ясность",
-      "description": "Готовность поддерживать связь и делать конкретные шаги."
+      "description": "Готовность поддерживать связь и делать конкретные шаги.",
+      "group": "relationship"
+    },
+    {
+      "id": "statusQuo",
+      "title": "Отношение к нынешнему формату",
+      "description": "Насколько человеку подходит сохранение отношений без изменений.",
+      "group": "relationship"
+    },
+    {
+      "id": "personality_extraversion",
+      "title": "Экстраверсия",
+      "description": "Социальная энергия, общительность и потребность во взаимодействии.",
+      "group": "personality",
+      "meaning": "Различия могут влиять на темп общения, социальные планы и то, как вы восстанавливаете силы."
+    },
+    {
+      "id": "personality_agreeableness",
+      "title": "Доброжелательность",
+      "description": "Сочувствие, сотрудничество и внимание к чувствам других.",
+      "group": "personality",
+      "meaning": "Различия могут проявляться в способе идти на компромисс, выражать поддержку и обсуждать границы."
+    },
+    {
+      "id": "personality_conscientiousness",
+      "title": "Добросовестность",
+      "description": "Организованность, ответственность и последовательность.",
+      "group": "personality",
+      "meaning": "Различия могут влиять на бытовые договорённости, планирование, деньги и выполнение обещаний."
+    },
+    {
+      "id": "personality_stability",
+      "title": "Эмоциональная стабильность",
+      "description": "Спокойствие, устойчивость к стрессу и эмоциональная реактивность.",
+      "group": "personality",
+      "meaning": "Различия могут влиять на реакции во время напряжения; полезно заранее договориться, как поддерживать друг друга в конфликте."
+    },
+    {
+      "id": "personality_openness",
+      "title": "Открытость опыту",
+      "description": "Любознательность, воображение и интерес к новым идеям.",
+      "group": "personality",
+      "meaning": "Различия могут влиять на интерес к новизне, обучению, переменам и привычному укладу."
+    },
+    {
+      "id": "love_intimacy",
+      "title": "Любовь: близость",
+      "description": "Тепло, эмоциональная поддержка и чувство понимания.",
+      "group": "love"
+    },
+    {
+      "id": "love_passion",
+      "title": "Любовь: страсть и влечение",
+      "description": "Романтичность, личная привлекательность и интенсивность влечения.",
+      "group": "love"
+    },
+    {
+      "id": "love_commitment",
+      "title": "Любовь: обязательство",
+      "description": "Уверенность в связи, устойчивость решения и ответственность.",
+      "group": "love"
     }
-  ]
+  ],
+  "scales": {
+    "default": [
+      {
+        "value": 1,
+        "label": "Совсем нет"
+      },
+      {
+        "value": 2,
+        "label": "Скорее нет"
+      },
+      {
+        "value": 3,
+        "label": "Не могу определиться"
+      },
+      {
+        "value": 4,
+        "label": "Скорее да"
+      },
+      {
+        "value": 5,
+        "label": "Полностью да"
+      }
+    ],
+    "ipip": [
+      {
+        "value": 1,
+        "label": "Совсем не похоже на меня"
+      },
+      {
+        "value": 2,
+        "label": "Скорее не похоже"
+      },
+      {
+        "value": 3,
+        "label": "И похоже, и не похоже"
+      },
+      {
+        "value": 4,
+        "label": "Скорее похоже"
+      },
+      {
+        "value": 5,
+        "label": "Очень похоже на меня"
+      }
+    ],
+    "tls": [
+      {
+        "value": 1,
+        "label": "Совсем нет"
+      },
+      {
+        "value": 2,
+        "label": "Слабо выражено"
+      },
+      {
+        "value": 3,
+        "label": "Умеренно выражено"
+      },
+      {
+        "value": 4,
+        "label": "Сильно выражено"
+      },
+      {
+        "value": 5,
+        "label": "Чрезвычайно выражено"
+      }
+    ]
+  },
+  "scoringNotes": {
+    "personality": "Пять шкал на основе IPIP Big-Five Factor Markers (50 items). Русские формулировки — рабочий перевод оригинальных открытых пунктов, не валидированная русская адаптация и не клиническая диагностика. Результаты — описательный профиль, без норм и процентилей.",
+    "love": "15 утверждений по треугольной модели любви: близость, страсть, обязательство. Русский текст — рабочий перевод пунктов TLS-15; в этом проекте результаты используются как рефлексивный самоотчёт, а не клиническая оценка.",
+    "compatibility": "Сходство черт само по себе не доказывает совместимость. Интерпретируются профили, расстояния между оценками и возможные темы для обсуждения; суммарный процент совместимости не рассчитывается."
+  }
 }
