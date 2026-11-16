@@ -1,0 +1,407 @@
+'use strict';
+
+const app = document.getElementById('app');
+const PARTNER_NAMES = { A: 'Василий', B: 'Полина' };
+const DRAFT_PREFIX = 'mn-draft-v1-';
+let questionSet;
+let sessionToken = null;
+let sessionInfo = null;
+let answers = {};
+let currentIndex = 0;
+let consentAccepted = false;
+let sessionError = null;
+
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[char]));
+const safeText = (value) => escapeHtml(value).replace(/\n/g, '<br>');
+const draftKey = () => `${DRAFT_PREFIX}${sessionToken}`;
+const saveDraft = () => {
+  try { localStorage.setItem(draftKey(), JSON.stringify(answers)); } catch (_) { /* local draft is optional */ }
+};
+const loadDraft = () => {
+  try {
+    const stored = localStorage.getItem(draftKey());
+    return stored ? JSON.parse(stored) : {};
+  } catch (_) { return {}; }
+};
+const api = async (url, options = {}) => {
+  const response = await fetch(url, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || `Ошибка запроса (${response.status})`);
+  return data;
+};
+const toast = (message, kind = 'error') => {
+  const old = document.querySelector('.toast-message');
+  if (old) old.remove();
+  const node = document.createElement('div');
+  node.className = `toast-message ${kind}`;
+  node.textContent = message;
+  Object.assign(node.style, {
+    position: 'fixed', zIndex: '20', left: '50%', bottom: '22px', transform: 'translateX(-50%)',
+    maxWidth: 'calc(100% - 32px)', padding: '12px 17px', borderRadius: '99px',
+    background: kind === 'error' ? '#482a3b' : '#25392c', color: '#fff', fontSize: '12px',
+    boxShadow: '0 10px 35px rgba(0,0,0,.35)', textAlign: 'center'
+  });
+  document.body.appendChild(node);
+  setTimeout(() => node.remove(), 3600);
+};
+
+async function init() {
+  try {
+    questionSet = await fetch('/questions.json', { cache: 'no-store' }).then((r) => {
+      if (!r.ok) throw new Error('Не удалось загрузить вопросы.');
+      return r.json();
+    });
+    const match = window.location.pathname.match(/^\/p\/([A-Za-z0-9_-]{32,100})\/?$/);
+    if (match) {
+      sessionToken = match[1];
+      await loadParticipant();
+    } else {
+      renderHome();
+    }
+  } catch (error) {
+    renderError(error.message || 'Не удалось открыть страницу.');
+  }
+}
+
+function renderHome() {
+  app.innerHTML = `
+    <section class="hero">
+      <div class="eyebrow">личное исследование для двоих</div>
+      <h1>Между <em>нами</em></h1>
+      <p class="hero-copy">Иногда чувства живут в словах. Но отношения становятся настоящими, когда два человека готовы услышать друг друга, быть честными и сделать шаг навстречу.</p>
+      <div class="hero-divider"><span>♥</span></div>
+    </section>
+    <section class="people" aria-label="Участники">
+      <article class="person-card optimist">
+        <img src="/assets/optimist.webp" alt="Образ участника Василия" fetchpriority="high">
+        <div class="person-meta"><small>участник A</small><strong>Василий</strong><span>свой взгляд на отношения</span></div>
+      </article>
+      <div class="between" aria-hidden="true">♡</div>
+      <article class="person-card poison">
+        <img src="/assets/poison.webp" alt="Образ участницы Полины" fetchpriority="high">
+        <div class="person-meta"><small>участник B</small><strong>Полина</strong><span>свой взгляд на отношения</span></div>
+      </article>
+    </section>
+    <div class="feature-row">
+      <span class="feature-pill"><b>60</b> прямых вопросов</span>
+      <span class="feature-pill"><b>6</b> важных тем</span>
+      <span class="feature-pill"><b>2</b> личных отчёта</span>
+      <span class="feature-pill"><b>1</b> общий взгляд</span>
+    </div>
+    <section class="panel start-panel">
+      <div><h3>У каждого будет свой голос.</h3><p>Создайте закрытое пространство. Получите личную ссылку и отдельную ссылку-приглашение. Ответы откроются для сравнения только после того, как оба участника завершат анкету.</p></div>
+      <button class="btn" id="create-room">Создать наше пространство <span>↗</span></button>
+    </section>
+    <div id="create-result-slot"></div>
+    <p class="fine center" style="max-width:660px;margin:20px auto 0">Это не проверка на любовь и не психологический диагноз. Здесь нет правильных ответов или рейтинга пары — только ваши собственные ответы и то, где ваши взгляды совпадают или расходятся.</p>
+  `;
+  document.getElementById('create-room').addEventListener('click', createRoom);
+}
+
+async function createRoom(event) {
+  const button = event.currentTarget;
+  button.disabled = true;
+  button.textContent = 'Создаём пространство…';
+  try {
+    const data = await api('/api/rooms', { method: 'POST', body: '{}' });
+    const slot = document.getElementById('create-result-slot');
+    slot.innerHTML = `
+      <section class="panel create-result">
+        <div class="eyebrow">пространство создано</div>
+        <h3>Теперь у каждого своя дверь.</h3>
+        <p class="fine">Сначала открой личную ссылку Василия. Вторую отправь Полине. Ссылки работают как ключи доступа — не публикуй их и не пересылай посторонним.</p>
+        <div class="link-row"><div class="link-info"><strong>Твоя личная ссылка · Василий</strong><span>${escapeHtml(data.participantUrl)}</span></div><button class="btn btn-secondary copy-link" data-copy="${escapeHtml(data.participantUrl)}">Скопировать</button></div>
+        <div class="link-row"><div class="link-info"><strong>Приглашение · Полина</strong><span>${escapeHtml(data.inviteUrl)}</span></div><button class="btn copy-link" data-copy="${escapeHtml(data.inviteUrl)}">Скопировать ссылку</button></div>
+        <div class="security-note">Ответы не показываются друг другу во время прохождения. После завершения обеих анкет общий отчёт станет доступен по обеим личным ссылкам. Сохрани обе ссылки.</div>
+        <div style="margin-top:17px"><a class="btn" href="${escapeHtml(data.participantUrl)}">Перейти к своей анкете <span>→</span></a></div>
+      </section>`;
+    slot.querySelectorAll('.copy-link').forEach((copyButton) => copyButton.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(copyButton.dataset.copy); toast('Ссылка скопирована', 'success'); }
+      catch (_) { toast('Не удалось скопировать автоматически. Нажми и удерживай ссылку, чтобы скопировать её вручную.'); }
+    }));
+    button.textContent = 'Пространство создано';
+    slot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = 'Создать наше пространство ↗';
+    toast(error.message);
+  }
+}
+
+async function loadParticipant() {
+  try {
+    sessionInfo = await api(`/api/session/${encodeURIComponent(sessionToken)}`);
+    consentAccepted = localStorage.getItem(`${draftKey()}-consent`) === 'yes';
+    if (sessionInfo.ownCompleted) {
+      answers = sessionInfo.ownAnswers || {};
+      await loadReport();
+      return;
+    }
+    answers = loadDraft();
+    renderIntro();
+  } catch (error) {
+    renderError(error.message);
+  }
+}
+
+function renderIntro() {
+  const role = sessionInfo.role;
+  app.innerHTML = `
+    <div class="content-wrap">
+      <div class="center" style="margin-bottom:18px"><span class="room-label"><i></i> закрытое пространство · участник ${role}</span></div>
+      <header class="page-head"><div class="eyebrow">твой взгляд на отношения</div><h1>Привет, ${escapeHtml(sessionInfo.displayName)}.</h1><p>Здесь не нужно угадывать, что хочет услышать другой человек. Важно только то, что действительно думаешь и чувствуешь ты.</p></header>
+      <section class="panel intro-card">
+        <h2>Перед началом — несколько важных вещей</h2>
+        <p>Анкета состоит из 60 обязательных вопросов. В ней есть шкалы, выбор вариантов и несколько вопросов, где нужно ответить своими словами. Пропустить вопрос не получится: свободный ответ тоже должен быть содержательным.</p>
+        <div class="rule-list">
+          <div class="rule-item"><span class="rule-icon">01</span><span>Отвечай самостоятельно, не обсуждая варианты с партнёром во время прохождения.</span></div>
+          <div class="rule-item"><span class="rule-icon">02</span><span>Можно не знать точного ответа. В таком случае выбирай наиболее близкий вариант, а не тот, который выглядит правильным.</span></div>
+          <div class="rule-item"><span class="rule-icon">03</span><span>Черновик сохраняется только в этом браузере. После финальной отправки ответы записываются в закрытое хранилище.</span></div>
+          <div class="rule-item"><span class="rule-icon">04</span><span>После отправки изменить анкету нельзя. Когда оба участника закончат, каждый увидит свой отчёт и общий сравнительный отчёт — включая ответы друг друга.</span></div>
+        </div>
+        <label class="consent-box"><input type="checkbox" id="consent" ${consentAccepted ? 'checked' : ''}><span>Я понимаю, что мои ответы будут сохранены и после завершения обеих анкет станут доступны обоим участникам в общем отчёте. Я прохожу анкету добровольно и отвечаю честно.</span></label>
+        <div class="intro-actions"><span class="fine">60 вопросов · ориентировочно 15–25 минут</span><button class="btn" id="start-quiz" ${consentAccepted ? '' : 'disabled'}>Начать отвечать <span>→</span></button></div>
+      </section>
+    </div>`;
+  const checkbox = document.getElementById('consent');
+  const startButton = document.getElementById('start-quiz');
+  checkbox.addEventListener('change', () => {
+    consentAccepted = checkbox.checked;
+    startButton.disabled = !consentAccepted;
+    try { localStorage.setItem(`${draftKey()}-consent`, consentAccepted ? 'yes' : 'no'); } catch (_) {}
+  });
+  startButton.addEventListener('click', () => {
+    if (!consentAccepted) return;
+    currentIndex = 0;
+    renderQuestion();
+  });
+}
+
+function currentQuestion() { return questionSet.questions[currentIndex]; }
+function currentBlock(question) { return questionSet.blocks.find((block) => block.id === question.block); }
+function validateAnswer(question, value) {
+  if (question.type === 'scale') return Number.isInteger(value) && value >= 1 && value <= 5;
+  if (question.type === 'single') return typeof value === 'string' && question.options.some((option) => option.value === value);
+  if (question.type === 'text') return typeof value === 'string' && value.trim().length >= (question.minLength || 12);
+  return false;
+}
+
+function renderQuestion() {
+  const q = currentQuestion();
+  const block = currentBlock(q);
+  const progress = Math.round((currentIndex / questionSet.questions.length) * 100);
+  const value = answers[String(q.id)];
+  let controls = '';
+  if (q.type === 'scale') {
+    controls = `<div class="scale-list">${questionSet.scale.map((option) => `
+      <button class="scale-option ${value === option.value ? 'selected' : ''}" data-scale="${option.value}" aria-pressed="${value === option.value}">
+        <strong>${option.value}</strong><span>${escapeHtml(option.label)}</span>
+      </button>`).join('')}</div>`;
+  } else if (q.type === 'text') {
+    controls = `<textarea class="text-answer" id="text-answer" maxlength="3000" placeholder="Напиши так, как есть…">${escapeHtml(value || '')}</textarea><div class="answer-hint">Ответ обязателен · не менее ${q.minLength || 12} символов. ${escapeHtml(q.hint || '')}</div>`;
+  } else {
+    controls = `<div class="choice-list">${q.options.map((option) => `
+      <button class="choice-option ${value === option.value ? 'selected' : ''}" data-choice="${escapeHtml(option.value)}" aria-pressed="${value === option.value}">
+        <span class="choice-radio"></span><span>${escapeHtml(option.label)}</span>
+      </button>`).join('')}</div>`;
+  }
+
+  app.innerHTML = `
+    <div class="content-wrap">
+      <div class="quiz-top">
+        <div class="quiz-topline"><span class="quiz-block">${escapeHtml(block.title)}</span><span class="quiz-counter">ВОПРОС ${String(q.id).padStart(2,'0')} / 60</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:${Math.max(2, progress)}%"></div></div>
+      </div>
+      <section class="panel question-card" key="q-${q.id}">
+        <div class="question-kicker"><span>${escapeHtml(block.subtitle)}</span><span class="question-number">${String(q.id).padStart(2,'0')}</span></div>
+        <h2>${escapeHtml(q.text)}</h2>
+        ${controls}
+        <div id="question-error" class="question-error"></div>
+      </section>
+      <div class="quiz-nav">
+        <button class="nav-back" id="previous" ${currentIndex === 0 ? 'disabled' : ''}>← Назад</button>
+        <button class="btn" id="next">${currentIndex === questionSet.questions.length - 1 ? 'Завершить анкету' : 'Следующий вопрос'} <span>→</span></button>
+      </div>
+      <div class="autosave">Черновик сохраняется на этом устройстве автоматически</div>
+    </div>`;
+
+  app.querySelectorAll('[data-scale]').forEach((button) => button.addEventListener('click', () => {
+    answers[String(q.id)] = Number(button.dataset.scale);
+    saveDraft();
+    renderQuestion();
+  }));
+  app.querySelectorAll('[data-choice]').forEach((button) => button.addEventListener('click', () => {
+    answers[String(q.id)] = button.dataset.choice;
+    saveDraft();
+    renderQuestion();
+  }));
+  const textarea = document.getElementById('text-answer');
+  if (textarea) textarea.addEventListener('input', () => {
+    answers[String(q.id)] = textarea.value;
+    saveDraft();
+  });
+  document.getElementById('previous').addEventListener('click', () => {
+    if (currentIndex > 0) { currentIndex -= 1; renderQuestion(); }
+  });
+  document.getElementById('next').addEventListener('click', async () => {
+    const currentValue = answers[String(q.id)];
+    if (!validateAnswer(q, currentValue)) {
+      const msg = q.type === 'text' ? `Добавь ответ длиной не менее ${q.minLength || 12} символов.` : 'Выбери один из вариантов ответа.';
+      document.getElementById('question-error').textContent = msg;
+      if (textarea) textarea.focus();
+      else app.querySelector('.scale-option, .choice-option')?.focus();
+      return;
+    }
+    if (currentIndex < questionSet.questions.length - 1) {
+      currentIndex += 1;
+      renderQuestion();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      await submitAnswers();
+    }
+  });
+}
+
+async function submitAnswers() {
+  const button = document.getElementById('next');
+  button.disabled = true;
+  button.textContent = 'Сохраняем ответы…';
+  try {
+    await api(`/api/session/${encodeURIComponent(sessionToken)}/submit`, {
+      method: 'POST', body: JSON.stringify({ answers, consent: true }),
+    });
+    try { localStorage.removeItem(draftKey()); } catch (_) {}
+    await loadParticipant();
+  } catch (error) {
+    button.disabled = false;
+    button.innerHTML = 'Завершить анкету <span>→</span>';
+    toast(error.message);
+  }
+}
+
+async function loadReport() {
+  try {
+    const report = await api(`/api/report/${encodeURIComponent(sessionToken)}`);
+    renderReport(report);
+  } catch (error) {
+    renderError(error.message);
+  }
+}
+
+function metricCard(dimension, profile, secondValue = null) {
+  const metric = profile[dimension.id];
+  if (!metric) return '';
+  return `<article class="metric-card">
+    <div class="metric-head"><strong>${escapeHtml(dimension.title)}</strong><span class="metric-value">${metric.average.toFixed(1)}<small style="font:10px var(--sans);color:var(--muted-2)"> / 5</small></span></div>
+    <p>${escapeHtml(dimension.description)}</p>
+    <div class="meter"><span style="width:${metric.average * 20}%"></span></div>
+    <div class="metric-foot"><span>${escapeHtml(metric.interpretation)}</span><span>${metric.count} показателей</span></div>
+  </article>`;
+}
+
+function renderPersonalAnswers(answersObj) {
+  const selectedIds = [1, 10, 20, 21, 30, 36, 47, 49, 56, 57, 59, 60];
+  return selectedIds.map((id) => {
+    const q = questionSet.questions.find((item) => item.id === id);
+    const value = answersObj[String(id)];
+    const label = q.type === 'single' ? (q.options.find((o) => o.value === value)?.label || value) : value;
+    return `<div class="answer-review"><strong>${String(id).padStart(2,'0')}. ${escapeHtml(q.text)}</strong><p>${safeText(label)}</p></div>`;
+  }).join('');
+}
+
+function comparisonRows(comparison) {
+  return comparison.dimensionComparison.map((item) => `
+    <div class="comparison-row">
+      <div class="comparison-name"><strong>${escapeHtml(item.title)}</strong><span class="match-tag">${escapeHtml(item.match)}</span></div>
+      <div class="dual-bars">
+        <div class="dual-line"><span>Василий</span><div class="meter"><span style="width:${(item.a || 0) * 20}%"></span></div><b>${item.a === null ? '—' : item.a.toFixed(1)}</b></div>
+        <div class="dual-line"><span>Полина</span><div class="meter"><span class="meter-b" style="width:${(item.b || 0) * 20}%"></span></div><b>${item.b === null ? '—' : item.b.toFixed(1)}</b></div>
+      </div>
+    </div>`).join('');
+}
+
+function questionDifferenceItems(items) {
+  if (!items?.length) return '<p class="fine">В этом разделе нет заметных различий в выбранных ответах.</p>';
+  return `<div class="compare-list">${items.map((item) => `
+    <article class="compare-item"><h4>${String(item.id).padStart(2,'0')}. ${escapeHtml(item.text)}</h4>
+      <div class="compare-answer"><div><strong>Василий</strong>${typeof item.a === 'number' ? `${item.a} из 5` : escapeHtml(item.a)}</div><div><strong>Полина</strong>${typeof item.b === 'number' ? `${item.b} из 5` : escapeHtml(item.b)}</div></div>
+    </article>`).join('')}</div>`;
+}
+
+function renderComparison(report) {
+  const comparison = report.comparison;
+  const { questions } = comparison;
+  return `
+    <section class="report-section">
+      <div class="eyebrow">два взгляда рядом</div><h2 class="report-title">Общий сравнительный отчёт</h2>
+      <p class="report-subtitle">Это не итоговый балл совместимости. Здесь видно, где ваши самооценки близки, а где есть различия, которые стоит обсудить.</p>
+      <div class="panel comparison-card">${comparisonRows(comparison)}</div>
+      <div class="report-section"><h3 class="report-title" style="font-size:23px">Ответы, в которых вы разошлись</h3><p class="report-subtitle">Самые заметные различия по шкалам и прямые выборы.</p>${questionDifferenceItems(questions.numericGaps.filter((x) => x.gap > 1).slice(0,8))}${questionDifferenceItems(questions.differentChoices)}</div>
+      <div class="report-section"><h3 class="report-title" style="font-size:23px">Ваши ответы своими словами</h3><p class="report-subtitle">Текстовые ответы не оцениваются баллами — их смысл нужно обсуждать, а не превращать в рейтинг.</p>
+        <div class="compare-list">${questions.writtenAnswers.map((item) => `<article class="compare-item"><h4>${String(item.id).padStart(2,'0')}. ${escapeHtml(item.text)}</h4><div class="text-pair"><div><b>Василий</b>${safeText(item.a)}</div><div><b>Полина</b>${safeText(item.b)}</div></div></article>`).join('')}</div>
+      </div>
+      <div class="report-note">${escapeHtml(comparison.note)}</div>
+    </section>`;
+}
+
+function downloadReport(report) {
+  const payload = {
+    project: 'Между нами',
+    exportedAt: new Date().toISOString(),
+    participant: sessionInfo.displayName,
+    personalReport: report.ownReport,
+    comparativeReport: report.comparison,
+    partnerCompleted: report.partnerCompleted,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `Между-нами-${sessionInfo.displayName.toLowerCase()}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function renderReport(report) {
+  const own = report.ownReport;
+  const profileCards = questionSet.dimensions.map((dimension) => metricCard(dimension, own.profile)).join('');
+  const completed = new Date(own.completedAt).toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short' });
+  if (!report.partnerCompleted) {
+    app.innerHTML = `
+      <div class="content-wrap">
+        <div class="page-head"><div class="eyebrow">первая часть готова</div><h1>Твой взгляд сохранён.</h1><p>Ты ответил(а) на все вопросы. Личный профиль уже сформирован. Общая картина появится, когда второй участник завершит свою анкету.</p><span class="room-label" style="margin-top:15px"><i></i> ${escapeHtml(sessionInfo.displayName)} · завершено ${escapeHtml(completed)}</span></div>
+        <section class="report-section"><h2 class="report-title">Твой личный профиль</h2><p class="report-subtitle">Показатели отражают твои ответы, а не объективную оценку отношений.</p><div class="report-grid">${profileCards}</div></section>
+        <section class="panel waiting-card report-section"><div class="waiting-heart">♥</div><h2>Теперь очередь второго взгляда</h2><p>Общий сравнительный отчёт откроется автоматически после завершения второй анкеты. Вернись по своей ссылке позже — она остаётся доступной.</p><button class="btn btn-secondary" id="refresh-report">Проверить, завершена ли вторая анкета</button></section>
+        <details class="report-section"><summary>Мои ответы на ключевые вопросы</summary><div class="details-body report-answers">${renderPersonalAnswers(own.answers)}</div></details>
+        <div class="report-actions"><button class="btn btn-secondary" id="print-report">Сохранить личный отчёт в PDF</button><button class="btn btn-quiet" id="download-report">Экспортировать ответы JSON</button></div>
+        <div class="report-note">Ответы другого участника пока скрыты. После его согласованного завершения оба получат доступ к общей сравнительной части.</div>
+      </div>`;
+  } else {
+    const partner = report.partnerReport;
+    app.innerHTML = `
+      <div class="content-wrap">
+        <div class="page-head"><div class="eyebrow">оба взгляда собраны</div><h1>Теперь видно <em style="color:var(--gold-bright)">между вами.</em></h1><p>Две самостоятельные анкеты завершены. Здесь собраны твой личный профиль и общая картина совпадений и расхождений.</p><span class="room-label" style="margin-top:15px"><i></i> ${escapeHtml(own.participant)} + ${escapeHtml(partner.participant)}</span></div>
+        <section class="report-section"><h2 class="report-title">Твой личный профиль</h2><p class="report-subtitle">Завершено ${escapeHtml(completed)}. Смотри на значения как на отражение собственных ответов.</p><div class="report-grid">${profileCards}</div></section>
+        ${renderComparison(report)}
+        <details class="report-section"><summary>Мои ответы на ключевые вопросы</summary><div class="details-body report-answers">${renderPersonalAnswers(own.answers)}</div></details>
+        <div class="report-actions"><button class="btn" id="print-report">Сохранить отчёт в PDF</button><button class="btn btn-secondary" id="download-report">Экспортировать JSON</button></div>
+        <div class="report-note">У каждого участника есть личная ссылка. Не публикуйте её: она открывает ваши отчёты и сохранённые ответы. Оценки показывают самоотчёт, не доказывают любовь и не заменяют разговор.</div>
+      </div>`;
+  }
+  document.getElementById('refresh-report')?.addEventListener('click', loadReport);
+  document.getElementById('print-report')?.addEventListener('click', () => window.print());
+  document.getElementById('download-report')?.addEventListener('click', () => downloadReport(report));
+}
+
+function renderError(message) {
+  app.innerHTML = `<div class="content-wrap"><section class="panel waiting-card"><div class="waiting-heart">♡</div><h2>Не получилось открыть пространство</h2><p>${escapeHtml(message || 'Проверь ссылку и попробуй ещё раз.')}</p><a class="btn btn-secondary" href="/">На главную</a></section></div>`;
+}
+
+init();
