@@ -157,7 +157,17 @@ function compareAnswers(answersA, answersB) {
       const av = getNumericScore(question, a);
       const bv = getNumericScore(question, b);
       if (Number.isFinite(av) && Number.isFinite(bv)) {
-        numericGaps.push({ id: question.id, block: question.block, text: question.text, a: av, b: bv, gap: Math.abs(av - bv) });
+        const optionLabel = (value) => question.type === 'single' ? (question.options.find((option) => option.value === value)?.label || value) : value;
+      numericGaps.push({
+        id: question.id,
+        block: question.block,
+        text: question.text,
+        a: optionLabel(a),
+        b: optionLabel(b),
+        scoreA: av,
+        scoreB: bv,
+        gap: Math.abs(av - bv),
+      });
       }
     } else if (question.type === 'text') {
       writtenAnswers.push({ id: question.id, block: question.block, text: question.text, a, b });
