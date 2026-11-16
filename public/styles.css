@@ -257,3 +257,30 @@ details[open] summary:after { content: "−"; }
   .meter { background: #eee !important; }
   .report-section { break-inside: avoid; }
 }
+
+/* Extended compatibility report */
+.compat-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+.summary-tile { border: 1px solid var(--line); border-radius: 15px; padding: 15px; background: rgba(255,255,255,.025); }
+.summary-tile span { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted-2); }
+.summary-tile strong { display: block; font-family: var(--serif); font-weight: 500; color: var(--gold-bright); font-size: 30px; margin: 5px 0; }
+.summary-tile small { display: block; font-size: 10px; line-height: 1.5; color: var(--muted); }
+.personality-card { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+.trait-compare { padding: 13px 0 16px; border-bottom: 1px solid var(--line); }
+.trait-compare:nth-last-child(-n+2) { border-bottom: 0; }
+.trait-compare p { font-size: 10px; line-height: 1.6; color: var(--muted-2); margin: 10px 0 0; }
+.attempt-history { display: grid; gap: 8px; }
+.attempt-row { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; border-bottom: 1px solid var(--line); padding: 10px 0; }
+.attempt-row:last-child { border-bottom: 0; }
+.attempt-row strong { color: var(--gold-bright); font-size: 11px; }
+.attempt-row span { font-size: 10px; color: var(--muted); text-align: right; }
+.attempt-row small { grid-column: 1 / -1; color: var(--muted-2); font-size: 9px; }
+#delete-my-data { border-color: rgba(217,132,150,.25); color: #c58e9d; }
+#delete-my-data:hover { border-color: rgba(217,132,150,.55); color: #edb7c5; }
+@media (max-width: 700px) {
+  .compat-summary { grid-template-columns: 1fr 1fr; }
+  .personality-card { grid-template-columns: 1fr; }
+  .trait-compare:nth-last-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .trait-compare:last-child { border-bottom: 0; }
+  .attempt-row { grid-template-columns: 1fr; }
+  .attempt-row span { text-align: left; }
+}
