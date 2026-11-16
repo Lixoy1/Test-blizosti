@@ -428,6 +428,161 @@ function questionDifferenceItems(items) {
     </article>`).join('')}</div>`;
 }
 
+
+function analysisValue(value) {
+  return Number.isFinite(value) ? value.toFixed(1) + ' из 5' : 'нет данных';
+}
+
+function renderPersonalTextAnalysis(own) {
+  const dimensions = questionSet.dimensions
+    .filter(function (dimension) { return dimension.group === 'relationship' || dimension.group === 'love'; })
+    .map(function (dimension) {
+      return { title: dimension.title, description: dimension.description, metric: own.profile[dimension.id] };
+    })
+    .filter(function (item) { return item.metric && Number.isFinite(item.metric.average); })
+    .sort(function (a, b) { return b.metric.average - a.metric.average; });
+  if (!dimensions.length) return '';
+
+  const strongest = dimensions.slice(0, 2);
+  const lowest = dimensions.slice(-2).filter(function (item) { return item.metric.average <= 3.2; });
+  const strongestText = strongest.map(function (item) {
+    return item.title + ' (' + analysisValue(item.metric.average) + ')';
+  }).join(' и ');
+  const paragraphs = [];
+  paragraphs.push('В твоих ответах наиболее заметны ' + strongestText + '. Это области, которые ты сам(а) сейчас оцениваешь как наиболее выраженные в этой связи. Такой результат описывает твоё восприятие отношений, а не устанавливает факты о чувствах или поступках другого человека.');
+  if (lowest.length) {
+    paragraphs.push('Более сдержанные оценки получены по направлениям: ' +
+      lowest.map(function (item) { return item.title + ' (' + analysisValue(item.metric.average) + ')'; }).join(' и ') +
+      '. Это не «провал», а темы, которым может понадобиться больше ясности, внимания или совместных договорённостей.');
+  } else {
+    const next = dimensions[dimensions.length - 1];
+    paragraphs.push('Даже среди наиболее высоких оценок относительно спокойнее выглядит направление «' +
+      next.title + '» (' + analysisValue(next.metric.average) +
+      '). Его можно обсудить отдельно, не воспринимая разницу как проблему сама по себе.');
+  }
+  const firstWords = typeof own.answers['1'] === 'string' ? own.answers['1'].trim() : '';
+  const quote = firstWords
+    ? '<blockquote class="analysis-quote"><span>Твои слова о чувствах</span><p>«' +
+      safeText(firstWords.length > 260 ? firstWords.slice(0, 257) + '…' : firstWords) +
+      '»</p></blockquote>'
+    : '';
+  return '<section class="analysis-summary report-section">' +
+    '<div class="eyebrow">личный разбор</div>' +
+    '<h2 class="report-title">Что показывают твои ответы</h2>' +
+    paragraphs.map(function (paragraph) { return '<p class="analysis-paragraph">' + escapeHtml(paragraph) + '</p>'; }).join('') +
+    quote + '</section>';
+}
+
+function getChoiceLabel(questionId, value) {
+  const question = questionSet.questions.find(function (item) { return item.id === questionId; });
+  if (!question || question.type !== 'single') return value;
+  const option = question.options.find(function (item) { return item.value === value; });
+  return option ? option.label : value;
+}
+
+function renderCoupleTextAnalysis(report) {
+  const comparison = report.comparison;
+  if (!comparison || !report.partnerReport) return '';
+  const own = report.ownReport;
+  const partner = report.partnerReport;
+  const vasiliy = own.participant === 'Василий' ? own : partner;
+  const polina = own.participant === 'Полина' ? own : partner;
+  const dimensions = comparison.dimensionComparison.filter(function (item) {
+    return item.group !== 'personality' && item.a !== null && item.b !== null && Number.isFinite(item.gap);
+  });
+  const shared = dimensions.filter(function (item) {
+    return item.a >= 3.4 && item.b >= 3.4 && item.gap <= 0.7;
+  }).sort(function (a, b) { return Math.min(b.a, b.b) - Math.min(a.a, a.b); }).slice(0, 2);
+  const differences = dimensions.filter(function (item) { return item.gap >= 0.8; })
+    .sort(function (a, b) { return b.gap - a.gap; }).slice(0, 2);
+  const paragraphs = [];
+
+  if (shared.length) {
+    paragraphs.push('Общая опора пары — ' + shared.map(function (item) { return item.title; }).join(' и ') +
+      '. По этим направлениям оценки достаточно высокие и близкие: у Василия и Полины есть похожее восприятие этой стороны отношений.');
+  } else {
+    paragraphs.push('По основным областям отношений пока не видно одного ярко выраженного совпадения, которое перекрывало бы остальные различия. Это не означает несовместимость: важнее понять, что каждый вкладывает в близость, взаимность и дальнейшие шаги.');
+  }
+
+  const describeDifference = function (item) {
+    const higher = item.a > item.b ? 'Василий' : 'Полина';
+    const lower = item.a > item.b ? 'Полина' : 'Василий';
+    if (item.id === 'statusQuo') {
+      return 'По отношению к нынешнему формату заметна разница: ' + higher +
+        ' выше оценивает готовность продолжать всё без изменений (' + analysisValue(Math.max(item.a, item.b)) +
+        '), чем ' + lower + ' (' + analysisValue(Math.min(item.a, item.b)) +
+        '). Возможно, одному из вас нынешний формат подходит больше, а другому важнее перемены.';
+    }
+    if (item.id === 'reality') {
+      return higher + ' сообщает о большей готовности к реальной встрече (' +
+        analysisValue(Math.max(item.a, item.b)) + ' против ' + analysisValue(Math.min(item.a, item.b)) +
+        ' у ' + lower + '). Это различие в заявленной готовности, а не доказательство того, кто сильнее заинтересован.';
+    }
+    if (item.id === 'initiative') {
+      return higher + ' выше оценивает собственную готовность проявлять инициативу и прояснять отношения (' +
+        analysisValue(Math.max(item.a, item.b)) + ' против ' + analysisValue(Math.min(item.a, item.b)) +
+        ' у ' + lower + '). Стоит обсудить, какие конкретные действия каждый считает взаимным шагом.';
+    }
+    return 'По направлению «' + item.title + '» самооценка ' + higher + ' выше (' +
+      analysisValue(Math.max(item.a, item.b)) + '), чем у ' + lower + ' (' +
+      analysisValue(Math.min(item.a, item.b)) + '). Это заметное различие в восприятии этой части отношений, а не оценка того, кто прав.';
+  };
+
+  if (differences.length) {
+    paragraphs.push('Самые заметные расхождения: ' + differences.map(describeDifference).join(' '));
+  } else if (dimensions.length) {
+    paragraphs.push('Оценки по основным областям достаточно близки. Даже совпадающие баллы не гарантируют одинаковых ожиданий — их полезно сверять в разговоре и поступках.');
+  }
+
+  const statusDifferences = [21, 30].map(function (id) {
+    const vasiliyAnswer = vasiliy.answers[String(id)];
+    const polinaAnswer = polina.answers[String(id)];
+    if (vasiliyAnswer === polinaAnswer) return '';
+    const title = id === 21 ? 'считаете ли вы себя парой' : 'как вы называете ваши отношения';
+    return 'Василий: «' + getChoiceLabel(id, vasiliyAnswer) + '»; Полина: «' +
+      getChoiceLabel(id, polinaAnswer) + '».';
+  }).filter(Boolean);
+
+  const statusText = statusDifferences.length
+    ? '<div class="analysis-callout"><strong>Разное понимание статуса</strong><p>В прямых ответах есть расхождение в том, ' +
+      (statusDifferences.length > 1 ? 'считаете ли вы себя парой и как называете эту связь' : 'как вы определяете эту связь') +
+      ': ' + statusDifferences.join(' ') +
+      ' Это стоит проговорить своими словами, чтобы не строить отношения на разных ожиданиях.</p></div>'
+    : '';
+
+  let nextStep = 'Полезно обсудить не только чувства, но и то, какие действия каждый из вас ждёт от другого в ближайшее время.';
+  const largest = differences[0];
+  if (largest) {
+    const nextSteps = {
+      closeness: 'Обсудите, какие проявления внимания помогают каждому чувствовать близость и заботу.',
+      trust: 'Обсудите, какие конкретные действия создают доверие и чувство безопасности.',
+      mutuality: 'Проясните, что каждый из вас считает взаимностью и равным участием.',
+      reality: 'Договоритесь о ближайшем реальном шаге: видеозвонке, дате встречи или альтернативном плане.',
+      future: 'Обсудите жизненные обстоятельства и то, какие условия должны быть выполнены для общего будущего.',
+      initiative: 'Назовите по одному конкретному шагу, который каждый готов сделать сам, и договоритесь о сроке.',
+      statusQuo: 'Честно обсудите, устраивает ли обоих нынешний формат или кто-то ждёт изменений.',
+      love_intimacy: 'Обсудите, через какие слова и поступки каждый чувствует тепло и эмоциональную поддержку.',
+      love_passion: 'Обсудите, одинаково ли вы понимаете романтическое внимание и влечение.',
+      love_commitment: 'Обсудите, что для каждого означает серьёзный выбор и ответственность за связь.'
+    };
+    nextStep = nextSteps[largest.id] || nextStep;
+  }
+
+  return '<section class="analysis-summary report-section">' +
+    '<div class="eyebrow">общая картина</div>' +
+    '<h2 class="report-title">Что происходит между вами</h2>' +
+    paragraphs.map(function (paragraph) { return '<p class="analysis-paragraph">' + escapeHtml(paragraph) + '</p>'; }).join('') +
+    statusText +
+    '<div class="analysis-next-step"><strong>О чём стоит поговорить в первую очередь</strong><p>' +
+    escapeHtml(nextStep) + '</p></div>' +
+    '<p class="analysis-disclaimer">Это интерпретация ваших самооценок и ответов на вопросы. Она не определяет, кто любит сильнее, не доказывает намерения и не заменяет наблюдение за реальными поступками.</p>' +
+    '</section>';
+}
+
+function renderAnalysisSummary(report) {
+  return renderPersonalTextAnalysis(report.ownReport) + renderCoupleTextAnalysis(report);
+}
+
 function renderComparison(report) {
   const comparison = report.comparison;
   const questions = comparison.questions;
@@ -558,6 +713,7 @@ function downloadReport(report) {
 function renderReport(report) {
   const own = report.ownReport;
   const profileSections = renderMetricSections(own.profile);
+  const analysisSummary = renderAnalysisSummary(report);
   const completed = new Date(own.completedAt).toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short' });
   const commonActions = `
     ${renderAttemptHistory(own.history)}
@@ -569,6 +725,7 @@ function renderReport(report) {
     app.innerHTML = `
       <div class="content-wrap">
         <div class="page-head"><div class="eyebrow">твой взгляд сохранён</div><h1>Твоя история <em style="color:var(--gold-bright)">зафиксирована.</em></h1><p>Ты ответил(а) на все 125 вопросов. Личный профиль уже сформирован. Общая картина появится, когда второй участник завершит свою анкету.</p><span class="room-label" style="margin-top:15px"><i></i> ${escapeHtml(own.participant)} · версия ${own.versionNo} · ${escapeHtml(completed)}</span></div>
+        ${analysisSummary}
         ${profileSections}
         <section class="panel waiting-card report-section"><div class="waiting-heart">♥</div><h2>Теперь очередь второго взгляда</h2><p>Общий сравнительный отчёт откроется автоматически после завершения второй анкеты. Вернись по своей ссылке позже — твоя завершённая версия останется в истории.</p><button class="btn btn-secondary" id="refresh-report">Проверить вторую анкету</button></section>
         <details class="report-section"><summary>Все мои ответы · 125 вопросов</summary><div class="details-body report-answers">${renderPersonalAnswers(own.answers)}</div></details>
@@ -581,6 +738,7 @@ function renderReport(report) {
     app.innerHTML = `
       <div class="content-wrap">
         <div class="page-head"><div class="eyebrow">оба взгляда собраны</div><h1>Теперь видно <em style="color:var(--gold-bright)">между вами.</em></h1><p>Две самостоятельные анкеты завершены. Ниже — личный портрет, характер, влечение, совпадения и темы, в которых ваши взгляды расходятся.</p><span class="room-label" style="margin-top:15px"><i></i> ${escapeHtml(own.participant)} · версия ${own.versionNo} &nbsp; + &nbsp; ${escapeHtml(partner.participant)} · версия ${partner.versionNo}</span></div>
+        ${analysisSummary}
         ${profileSections}
         ${renderComparison(report)}
         <details class="report-section"><summary>Все мои ответы · 125 вопросов</summary><div class="details-body report-answers">${renderPersonalAnswers(own.answers)}</div></details>
