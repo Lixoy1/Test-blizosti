@@ -433,44 +433,74 @@ function analysisValue(value) {
   return Number.isFinite(value) ? value.toFixed(1) + ' из 5' : 'нет данных';
 }
 
+function personalDimensionMeaning(id, level) {
+  const meanings = {
+    closeness: ['Сейчас эмоциональная близость ощущается сдержанно. Полезно понять, каких проявлений тепла и присутствия не хватает.', 'Связь ощущается, но потребность в близости может меняться в зависимости от обстоятельств и общения.', 'Эмоциональная близость занимает заметное место. Важно поддерживать её не только словами, но и регулярным вниманием.'],
+    trust: ['Есть основания внимательнее отнестись к чувству безопасности и открытости. Стоит назвать конкретные действия, которые укрепляют доверие.', 'Доверие присутствует неравномерно или ещё формируется. Помогают последовательность и ясные договорённости.', 'Ты высоко оцениваешь доверие. Важно сохранять честность и предсказуемость в сложных разговорах.'],
+    mutuality: ['Может ощущаться нехватка равного участия или ясности. Полезно прямо обсудить ожидания каждого.', 'Взаимность ощущается частично. Стоит сверить, одинаково ли вы понимаете внимание, инициативу и ответственность.', 'Ты воспринимаешь участие как достаточно взаимное. Поддерживайте баланс, чтобы инициативу не нёс постоянно один человек.'],
+    reality: ['Готовность к реальному контакту пока оценивается сдержанно. Важно понять, что именно мешает следующему шагу.', 'Желание перейти к реальному контакту может сочетаться с сомнениями или условиями. Полезно обсудить конкретный и посильный план.', 'Ты заявляешь о высокой готовности к реальной встрече. Следующий ориентир — согласованный шаг и его выполнение.'],
+    future: ['Общее будущее пока трудно представить или принять. Стоит честно разобрать обстоятельства и личные границы.', 'Есть интерес к перспективе, но остаются вопросы и условия. Полезно обсуждать их по одному, без обещаний наперёд.', 'Ты достаточно уверенно смотришь на перспективу этой связи. Важно соотнести ожидания с реальными обстоятельствами обоих.'],
+    initiative: ['Собственная инициатива или ясность намерений сейчас оцениваются сдержанно. Важно понять, какой шаг действительно готов сделать каждый.', 'Готовность проявлять инициативу есть, но может зависеть от ситуации и ответной реакции. Помогают конкретные договорённости.', 'Ты высоко оцениваешь готовность действовать и прояснять отношения. Сильнее всего это проявляется в последовательных поступках.'],
+    statusQuo: ['Текущий формат, похоже, не воспринимается как полностью подходящий для продолжения без изменений. Стоит назвать, что именно хочется изменить.', 'Отношение к сохранению нынешнего формата неоднозначно. Полезно определить, что устраивает, а что уже требует перемен.', 'Ты достаточно спокойно относишься к сохранению нынешнего формата. Важно проверить, комфортен ли он также партнёру.'],
+    love_intimacy: ['Тепло и эмоциональная поддержка могут ощущаться недостаточно выраженными. Стоит обсудить, какие проявления заботы важны.', 'Эмоциональная сторона связи присутствует, но может нуждаться в большей определённости или регулярности.', 'Ты высоко оцениваешь близость, тепло и чувство понимания в этой связи.'],
+    love_passion: ['Романтическое влечение сейчас оценивается сдержанно. Это повод понять собственные чувства, а не делать вывод о ценности человека.', 'Влечение присутствует, но его интенсивность может быть переменной или зависеть от контакта.', 'Ты высоко оцениваешь романтическое влечение и эмоциональную интенсивность этой связи.'],
+    love_commitment: ['Уверенность в долгосрочном выборе пока невысока. Важно не торопить решение, а прояснить сомнения и условия.', 'Есть намерение сохранять связь, но степень уверенности или готовности к обязательствам ещё формируется.', 'Ты достаточно уверенно оцениваешь готовность сохранять связь и брать за неё ответственность.']
+  };
+  const options = meanings[id];
+  if (!options) return 'Эта область отражает один из аспектов твоего самоописания в отношениях.';
+  if (level < 2.6) return options[0];
+  if (level < 3.7) return options[1];
+  return options[2];
+}
+
 function renderPersonalTextAnalysis(own) {
   const dimensions = questionSet.dimensions
     .filter(function (dimension) { return dimension.group === 'relationship' || dimension.group === 'love'; })
     .map(function (dimension) {
-      return { title: dimension.title, description: dimension.description, metric: own.profile[dimension.id] };
+      return { id: dimension.id, title: dimension.title, description: dimension.description, metric: own.profile[dimension.id] };
     })
     .filter(function (item) { return item.metric && Number.isFinite(item.metric.average); })
     .sort(function (a, b) { return b.metric.average - a.metric.average; });
   if (!dimensions.length) return '';
 
   const strongest = dimensions.slice(0, 2);
-  const lowest = dimensions.slice(-2).filter(function (item) { return item.metric.average <= 3.2; });
+  const lowest = dimensions.slice(-2);
   const strongestText = strongest.map(function (item) {
     return item.title + ' (' + analysisValue(item.metric.average) + ')';
   }).join(' и ');
-  const paragraphs = [];
-  paragraphs.push('В твоих ответах наиболее заметны ' + strongestText + '. Это области, которые ты сам(а) сейчас оцениваешь как наиболее выраженные в этой связи. Такой результат описывает твоё восприятие отношений, а не устанавливает факты о чувствах или поступках другого человека.');
-  if (lowest.length) {
-    paragraphs.push('Более сдержанные оценки получены по направлениям: ' +
-      lowest.map(function (item) { return item.title + ' (' + analysisValue(item.metric.average) + ')'; }).join(' и ') +
-      '. Это не «провал», а темы, которым может понадобиться больше ясности, внимания или совместных договорённостей.');
-  } else {
-    const next = dimensions[dimensions.length - 1];
-    paragraphs.push('Даже среди наиболее высоких оценок относительно спокойнее выглядит направление «' +
-      next.title + '» (' + analysisValue(next.metric.average) +
-      '). Его можно обсудить отдельно, не воспринимая разницу как проблему сама по себе.');
-  }
-  const firstWords = typeof own.answers['1'] === 'string' ? own.answers['1'].trim() : '';
-  const quote = firstWords
-    ? '<blockquote class="analysis-quote"><span>Твои слова о чувствах</span><p>«' +
-      safeText(firstWords.length > 260 ? firstWords.slice(0, 257) + '…' : firstWords) +
-      '»</p></blockquote>'
-    : '';
+  const overview = '<p class="analysis-paragraph">Наиболее выраженными в твоём самоописании выглядят ' +
+    escapeHtml(strongestText) + '. Это твои сильные субъективные оценки на момент прохождения, а не объективное измерение чувств партнёра.</p>' +
+    '<p class="analysis-paragraph">Относительно более сдержанными выглядят ' +
+    escapeHtml(lowest.map(function (item) { return item.title + ' (' + analysisValue(item.metric.average) + ')'; }).join(' и ')) +
+    '. Эти направления полезно рассмотреть внимательнее: не как недостатки, а как вопросы, где может не хватать ясности, опыта или взаимных договорённостей.</p>';
+
+  const detailCards = dimensions.map(function (item) {
+    const score = item.metric.average;
+    return '<article class="analysis-dimension">' +
+      '<div class="analysis-dimension-head"><strong>' + escapeHtml(item.title) + '</strong><b>' + analysisValue(score) + '</b></div>' +
+      '<div class="meter"><span style="width:' + (score * 20) + '%"></span></div>' +
+      '<p>' + escapeHtml(personalDimensionMeaning(item.id, score)) + '</p>' +
+      '<small>' + escapeHtml(item.description) + '</small>' +
+      '</article>';
+  }).join('');
+
+  const textAnswers = [1, 20, 36, 49].map(function (id) {
+    const question = questionSet.questions.find(function (item) { return item.id === id; });
+    const value = own.answers[String(id)];
+    if (!question || typeof value !== 'string' || !value.trim()) return '';
+    return '<article class="analysis-answer"><strong>' + escapeHtml(question.text) + '</strong><p>«' +
+      safeText(value.trim().length > 360 ? value.trim().slice(0, 357) + '…' : value.trim()) + '»</p></article>';
+  }).filter(Boolean).join('');
+
   return '<section class="analysis-summary report-section">' +
     '<div class="eyebrow">личный разбор</div>' +
     '<h2 class="report-title">Что показывают твои ответы</h2>' +
-    paragraphs.map(function (paragraph) { return '<p class="analysis-paragraph">' + escapeHtml(paragraph) + '</p>'; }).join('') +
-    quote + '</section>';
+    overview +
+    '<h3 class="analysis-subheading">Подробно по направлениям</h3>' +
+    '<div class="analysis-dimension-list">' + detailCards + '</div>' +
+    (textAnswers ? '<h3 class="analysis-subheading">Твои ответы своими словами</h3><div class="analysis-answer-list">' + textAnswers + '</div>' : '') +
+    '<p class="analysis-disclaimer">Текстовые ответы приведены как цитаты, а не как автоматически установленный психологический факт. Все оценки отражают твоё самоописание и не доказывают чувства, намерения или поступки другого человека.</p>' +
+    '</section>';
 }
 
 function getChoiceLabel(questionId, value) {
@@ -478,6 +508,15 @@ function getChoiceLabel(questionId, value) {
   if (!question || question.type !== 'single') return value;
   const option = question.options.find(function (item) { return item.value === value; });
   return option ? option.label : value;
+}
+
+function coupleDimensionMeaning(item) {
+  const highA = item.a > item.b ? 'Василий' : 'Полина';
+  const highB = item.a > item.b ? 'Полина' : 'Василий';
+  const gap = item.gap;
+  if (gap <= 0.4) return 'Оценки практически совпадают. Вероятно, вы похоже воспринимаете эту область, хотя конкретные ожидания всё равно лучше проговорить.';
+  if (gap <= 0.9) return 'Есть небольшая разница: ' + highA + ' оценивает эту сторону немного выше. Обычно полезно уточнить, что каждый вкладывает в это понятие.';
+  return 'Разница заметна: ' + highA + ' оценивает эту область выше, чем ' + highB + '. Это не говорит, кто прав или кто больше любит; скорее, у вас могут различаться потребности или ожидания.';
 }
 
 function renderCoupleTextAnalysis(report) {
@@ -492,90 +531,74 @@ function renderCoupleTextAnalysis(report) {
   });
   const shared = dimensions.filter(function (item) {
     return item.a >= 3.4 && item.b >= 3.4 && item.gap <= 0.7;
-  }).sort(function (a, b) { return Math.min(b.a, b.b) - Math.min(a.a, a.b); }).slice(0, 2);
+  }).sort(function (a, b) { return Math.min(b.a, b.b) - Math.min(a.a, a.b); });
   const differences = dimensions.filter(function (item) { return item.gap >= 0.8; })
-    .sort(function (a, b) { return b.gap - a.gap; }).slice(0, 2);
+    .sort(function (a, b) { return b.gap - a.gap; });
   const paragraphs = [];
 
   if (shared.length) {
-    paragraphs.push('Общая опора пары — ' + shared.map(function (item) { return item.title; }).join(' и ') +
-      '. По этим направлениям оценки достаточно высокие и близкие: у Василия и Полины есть похожее восприятие этой стороны отношений.');
+    paragraphs.push('Ваша общая опора — ' + shared.slice(0, 3).map(function (item) { return item.title; }).join(', ') +
+      '. Здесь оба участника поставили достаточно высокие и близкие оценки. Это потенциальные точки согласия, на которые можно опираться в разговоре.');
   } else {
-    paragraphs.push('По основным областям отношений пока не видно одного ярко выраженного совпадения, которое перекрывало бы остальные различия. Это не означает несовместимость: важнее понять, что каждый вкладывает в близость, взаимность и дальнейшие шаги.');
+    paragraphs.push('В ответах пока нет области, где одновременно сочетаются высокие и очень близкие оценки. Это не означает несовместимость: скорее, важно внимательнее выяснить, как каждый из вас понимает близость, взаимность и развитие отношений.');
   }
-
-  const describeDifference = function (item) {
-    const higher = item.a > item.b ? 'Василий' : 'Полина';
-    const lower = item.a > item.b ? 'Полина' : 'Василий';
-    if (item.id === 'statusQuo') {
-      return 'По отношению к нынешнему формату заметна разница: ' + higher +
-        ' выше оценивает готовность продолжать всё без изменений (' + analysisValue(Math.max(item.a, item.b)) +
-        '), чем ' + lower + ' (' + analysisValue(Math.min(item.a, item.b)) +
-        '). Возможно, одному из вас нынешний формат подходит больше, а другому важнее перемены.';
-    }
-    if (item.id === 'reality') {
-      return higher + ' сообщает о большей готовности к реальной встрече (' +
-        analysisValue(Math.max(item.a, item.b)) + ' против ' + analysisValue(Math.min(item.a, item.b)) +
-        ' у ' + lower + '). Это различие в заявленной готовности, а не доказательство того, кто сильнее заинтересован.';
-    }
-    if (item.id === 'initiative') {
-      return higher + ' выше оценивает собственную готовность проявлять инициативу и прояснять отношения (' +
-        analysisValue(Math.max(item.a, item.b)) + ' против ' + analysisValue(Math.min(item.a, item.b)) +
-        ' у ' + lower + '). Стоит обсудить, какие конкретные действия каждый считает взаимным шагом.';
-    }
-    return 'По направлению «' + item.title + '» самооценка ' + higher + ' выше (' +
-      analysisValue(Math.max(item.a, item.b)) + '), чем у ' + lower + ' (' +
-      analysisValue(Math.min(item.a, item.b)) + '). Это заметное различие в восприятии этой части отношений, а не оценка того, кто прав.';
-  };
 
   if (differences.length) {
-    paragraphs.push('Самые заметные расхождения: ' + differences.map(describeDifference).join(' '));
-  } else if (dimensions.length) {
-    paragraphs.push('Оценки по основным областям достаточно близки. Даже совпадающие баллы не гарантируют одинаковых ожиданий — их полезно сверять в разговоре и поступках.');
+    const first = differences[0];
+    paragraphs.push('Наиболее заметное расхождение связано с направлением «' + first.title + '»: ' +
+      (first.a > first.b ? 'Василий' : 'Полина') + ' оценивает его в ' +
+      analysisValue(Math.max(first.a, first.b)) + ', а ' +
+      (first.a > first.b ? 'Полина' : 'Василий') + ' — в ' +
+      analysisValue(Math.min(first.a, first.b)) +
+      '. Это стоит обсудить отдельно, потому что одинаковые слова могут скрывать разные ожидания.');
+  } else {
+    paragraphs.push('По числовым оценкам выраженных разрывов почти нет. Это хорошая основа для диалога, но совпадение баллов само по себе не гарантирует одинакового понимания конкретных действий.');
   }
+
+  const detailedRows = dimensions.map(function (item) {
+    return '<article class="analysis-dimension">' +
+      '<div class="analysis-dimension-head"><strong>' + escapeHtml(item.title) + '</strong><b>разница ' + item.gap.toFixed(1) + '</b></div>' +
+      '<div class="analysis-pair-values"><span>Василий <b>' + analysisValue(item.a) + '</b></span><span>Полина <b>' + analysisValue(item.b) + '</b></span></div>' +
+      '<div class="analysis-pair-meter"><span style="width:' + (item.a * 20) + '%"></span><i style="width:' + (item.b * 20) + '%"></i></div>' +
+      '<p>' + escapeHtml(coupleDimensionMeaning(item)) + '</p>' +
+      '</article>';
+  }).join('');
 
   const statusDifferences = [21, 30].map(function (id) {
     const vasiliyAnswer = vasiliy.answers[String(id)];
     const polinaAnswer = polina.answers[String(id)];
     if (vasiliyAnswer === polinaAnswer) return '';
-    const title = id === 21 ? 'считаете ли вы себя парой' : 'как вы называете ваши отношения';
-    return 'Василий: «' + getChoiceLabel(id, vasiliyAnswer) + '»; Полина: «' +
-      getChoiceLabel(id, polinaAnswer) + '».';
-  }).filter(Boolean);
+    const question = questionSet.questions.find(function (item) { return item.id === id; });
+    return '<div class="analysis-status-row"><strong>' + escapeHtml(question ? question.text : 'Ваш взгляд на отношения') + '</strong>' +
+      '<p>Василий: «' + escapeHtml(getChoiceLabel(id, vasiliyAnswer)) + '»</p>' +
+      '<p>Полина: «' + escapeHtml(getChoiceLabel(id, polinaAnswer)) + '»</p></div>';
+  }).filter(Boolean).join('');
 
-  const statusText = statusDifferences.length
-    ? '<div class="analysis-callout"><strong>Разное понимание статуса</strong><p>В прямых ответах есть расхождение в том, ' +
-      (statusDifferences.length > 1 ? 'считаете ли вы себя парой и как называете эту связь' : 'как вы определяете эту связь') +
-      ': ' + statusDifferences.join(' ') +
-      ' Это стоит проговорить своими словами, чтобы не строить отношения на разных ожиданиях.</p></div>'
-    : '';
-
-  let nextStep = 'Полезно обсудить не только чувства, но и то, какие действия каждый из вас ждёт от другого в ближайшее время.';
   const largest = differences[0];
-  if (largest) {
-    const nextSteps = {
-      closeness: 'Обсудите, какие проявления внимания помогают каждому чувствовать близость и заботу.',
-      trust: 'Обсудите, какие конкретные действия создают доверие и чувство безопасности.',
-      mutuality: 'Проясните, что каждый из вас считает взаимностью и равным участием.',
-      reality: 'Договоритесь о ближайшем реальном шаге: видеозвонке, дате встречи или альтернативном плане.',
-      future: 'Обсудите жизненные обстоятельства и то, какие условия должны быть выполнены для общего будущего.',
-      initiative: 'Назовите по одному конкретному шагу, который каждый готов сделать сам, и договоритесь о сроке.',
-      statusQuo: 'Честно обсудите, устраивает ли обоих нынешний формат или кто-то ждёт изменений.',
-      love_intimacy: 'Обсудите, через какие слова и поступки каждый чувствует тепло и эмоциональную поддержку.',
-      love_passion: 'Обсудите, одинаково ли вы понимаете романтическое внимание и влечение.',
-      love_commitment: 'Обсудите, что для каждого означает серьёзный выбор и ответственность за связь.'
-    };
-    nextStep = nextSteps[largest.id] || nextStep;
-  }
+  const nextSteps = {
+    closeness: 'Обсудите, какие проявления внимания помогают каждому чувствовать близость и заботу.',
+    trust: 'Обсудите, какие конкретные действия создают доверие и чувство безопасности.',
+    mutuality: 'Проясните, что каждый из вас считает взаимностью и равным участием.',
+    reality: 'Договоритесь о ближайшем реальном шаге: видеозвонке, дате встречи или альтернативном плане.',
+    future: 'Обсудите жизненные обстоятельства и то, какие условия должны быть выполнены для общего будущего.',
+    initiative: 'Назовите по одному конкретному шагу, который каждый готов сделать сам, и договоритесь о сроке.',
+    statusQuo: 'Честно обсудите, устраивает ли обоих нынешний формат или кто-то ждёт изменений.',
+    love_intimacy: 'Обсудите, через какие слова и поступки каждый чувствует тепло и эмоциональную поддержку.',
+    love_passion: 'Обсудите, одинаково ли вы понимаете романтическое внимание и влечение.',
+    love_commitment: 'Обсудите, что для каждого означает серьёзный выбор и ответственность за связь.'
+  };
+  const nextStep = largest ? (nextSteps[largest.id] || 'Обсудите, какие конкретные действия помогут лучше понять ожидания друг друга.') :
+    'Сверьте, какие реальные действия каждый считает проявлением внимания, взаимности и серьёзности намерений.';
 
   return '<section class="analysis-summary report-section">' +
     '<div class="eyebrow">общая картина</div>' +
     '<h2 class="report-title">Что происходит между вами</h2>' +
     paragraphs.map(function (paragraph) { return '<p class="analysis-paragraph">' + escapeHtml(paragraph) + '</p>'; }).join('') +
-    statusText +
-    '<div class="analysis-next-step"><strong>О чём стоит поговорить в первую очередь</strong><p>' +
-    escapeHtml(nextStep) + '</p></div>' +
-    '<p class="analysis-disclaimer">Это интерпретация ваших самооценок и ответов на вопросы. Она не определяет, кто любит сильнее, не доказывает намерения и не заменяет наблюдение за реальными поступками.</p>' +
+    '<h3 class="analysis-subheading">Как соотносятся ваши взгляды</h3>' +
+    '<div class="analysis-dimension-list">' + detailedRows + '</div>' +
+    (statusDifferences ? '<div class="analysis-callout"><strong>Разное понимание статуса</strong>' + statusDifferences + '<p>Такие ответы лучше обсудить напрямую: важно, чтобы оба одинаково понимали, что сейчас происходит между вами.</p></div>' : '') +
+    '<div class="analysis-next-step"><strong>О чём стоит поговорить в первую очередь</strong><p>' + escapeHtml(nextStep) + '</p></div>' +
+    '<p class="analysis-disclaimer">Это интерпретация двух самостоятельных самооценок. Она не устанавливает, кто любит сильнее, не доказывает намерения и не предсказывает будущее отношений.</p>' +
     '</section>';
 }
 
