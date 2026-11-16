@@ -152,6 +152,19 @@ a { color: inherit; }
 .report-section { margin-top: 24px; }
 .report-title { font-family: var(--serif); font-weight: 500; font-size: 28px; margin: 0 0 8px; }
 .report-subtitle { color: var(--muted); font-size: 11px; line-height: 1.7; margin: 0 0 17px; }
+
+.analysis-summary { padding: 22px 23px; border: 1px solid rgba(217,185,120,.24); border-radius: 20px; background: linear-gradient(145deg, rgba(38,33,49,.96), rgba(25,23,36,.96)); box-shadow: var(--shadow); }
+.analysis-summary .report-title { margin-bottom: 14px; }
+.analysis-paragraph { color: #e5dce2; font-size: 12px; line-height: 1.85; margin: 0 0 13px; }
+.analysis-paragraph:last-of-type { margin-bottom: 0; }
+.analysis-quote { margin: 18px 0 0; padding: 14px 16px; border-left: 2px solid var(--gold); background: rgba(255,255,255,.035); border-radius: 0 12px 12px 0; }
+.analysis-quote span { display: block; color: var(--gold-bright); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 7px; }
+.analysis-quote p { color: var(--muted); font-family: var(--serif); font-size: 15px; line-height: 1.65; margin: 0; }
+.analysis-callout, .analysis-next-step { margin-top: 16px; padding: 15px 17px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.03); }
+.analysis-callout strong, .analysis-next-step strong { color: var(--gold-bright); font-size: 11px; font-weight: 600; }
+.analysis-callout p, .analysis-next-step p { color: #e5dce2; font-size: 11px; line-height: 1.8; margin: 7px 0 0; }
+.analysis-disclaimer { color: var(--muted-2); font-size: 9px; line-height: 1.65; margin: 15px 0 0; }
+
 .report-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
 .metric-card { padding: 18px 18px 16px; border: 1px solid var(--line); border-radius: 17px; background: rgba(255,255,255,.025); }
 .metric-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
@@ -251,8 +264,8 @@ details[open] summary:after { content: "−"; }
   body { background: #fff !important; color: #181522 !important; }
   .ambient, .grain, .topbar, .site-footer, .report-actions, .btn { display: none !important; }
   .app-shell { width: 100%; max-width: 100%; padding: 0; }
-  .panel, .metric-card, .comparison-card, .compare-item, details { background: #fff !important; color: #181522 !important; border-color: #ddd !important; box-shadow: none !important; break-inside: avoid; }
-  .muted, .report-subtitle, .metric-card p, .compare-answer > div, .text-pair div, .answer-review p { color: #444 !important; }
+  .panel, .metric-card, .comparison-card, .compare-item, .analysis-summary, .analysis-callout, .analysis-next-step, .analysis-quote, details { background: #fff !important; color: #181522 !important; border-color: #ddd !important; box-shadow: none !important; break-inside: avoid; }
+  .muted, .report-subtitle, .metric-card p, .analysis-paragraph, .analysis-quote p, .analysis-callout p, .analysis-next-step p, .analysis-disclaimer, .compare-answer > div, .text-pair div, .answer-review p { color: #444 !important; }
   .metric-head strong, .comparison-name strong, .compare-item h4, .answer-review strong { color: #181522 !important; }
   .meter { background: #eee !important; }
   .report-section { break-inside: avoid; }
