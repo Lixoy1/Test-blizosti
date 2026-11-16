@@ -446,6 +446,13 @@ app.get('/api/report/:token', requireDatabase, async (req, res) => {
     );
     const ownAnswers = own.rows[0].answers;
     const ownProfile = profileFromAnswers(ownAnswers);
+    const changeLog = await pool.query(
+      `SELECT version_no, question_id, old_value, new_value, changed_at
+         FROM answer_history
+        WHERE room_id = $1 AND role = $2
+        ORDER BY changed_at ASC, id ASC`,
+      [participant.room_id, participant.role]
+    );
     const ownReport = {
       participant: participant.display_name,
       versionNo: own.rows[0].version_no,
@@ -453,6 +460,7 @@ app.get('/api/report/:token', requireDatabase, async (req, res) => {
       profile: ownProfile,
       answers: ownAnswers,
       history: history.rows,
+      changeLog: changeLog.rows,
     };
     if (!partner) return res.json({ ownReport, partnerCompleted: false, comparison: null });
 
