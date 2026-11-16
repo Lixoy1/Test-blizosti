@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Техническая проверка — Между нами</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#111019;color:#f4eee8;font:16px/1.5 system-ui,sans-serif;padding:24px;max-width:720px;margin:auto}.panel{background:#211e2c;border:1px solid #51485a;border-radius:20px;padding:22px}h1{font:32px/1.1 Georgia,serif;margin:0 0 12px}.muted{color:#aaa2b2}.btn{border:0;border-radius:30px;padding:15px 22px;background:linear-gradient(100deg,#f1d89e,#e5b5c4);color:#201923;font-weight:700;font-size:16px;width:100%;margin:16px 0;cursor:pointer}.btn:disabled{opacity:.5}.log{white-space:pre-wrap;overflow-wrap:anywhere;background:#17151e;border-radius:12px;padding:14px;min-height:100px;font-size:14px}.ok{color:#9fe0b2}.bad{color:#ff9c9c}
+</style>
+</head>
+<body>
+<section class="panel">
+<div class="muted">ВРЕМЕННАЯ ТЕХНИЧЕСКАЯ СТРАНИЦА</div>
+<h1>Проверка двух анкет</h1>
+<p>Создаст отдельную тестовую комнату, заполнит обе анкеты демонстрационными ответами и проверит сохранение, личные отчёты и общее сравнение. Настоящие анкеты и ссылки не затрагиваются.</p>
+<p class="muted">Тестовая комната останется в базе как демонстрационная запись. Ответы будут случайными техническими значениями, не твоими и не Полиниными.</p>
+<button class="btn" id="run">Запустить полную проверку</button>
+<div class="log" id="log">Ожидание запуска…</div>
+</section>
+<script>
+const logEl=document.getElementById('log');
+const button=document.getElementById('run');
+function log(message,ok=true){const line=document.createElement('div');line.className=ok?'ok':'bad';line.textContent=(ok?'✓ ':'✕ ')+message;logEl.append(line)}
+async function api(url,options={}){const r=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'HTTP '+r.status);return data}
+function makeAnswers(qs){const result={};for(const q of qs){if(q.type==='scale')result[String(q.id)]=3;else if(q.type==='single'){if(!q.options?.length)throw new Error('Нет вариантов у вопроса '+q.id);result[String(q.id)]=q.options[0].value}else if(q.type==='text'){const n=q.minLength||12;result[String(q.id)]='Тестовый демонстрационный ответ для технической проверки.'.padEnd(n,' тест').slice(0,Math.max(n,12))}else throw new Error('Неизвестный тип вопроса '+q.type)}return result}
+async function run(){button.disabled=true;logEl.textContent='';try{
+const qs=await fetch('/questions.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('Не удалось загрузить вопросы');return r.json()});
+if(!Array.isArray(qs.questions)||qs.questions.length!==125)throw new Error('Ожидалось 125 вопросов; найдено '+(qs.questions?.length||0));
+log('Загружены все 125 вопросов');
+const room=await api('/api/rooms',{method:'POST',body:'{}'});
+const tokenA=new URL(room.participantUrl).pathname.split('/').pop();
+const tokenB=new URL(room.inviteUrl).pathname.split('/').pop();
+log('Создана отдельная тестовая комната и получены две роли');
+const a=makeAnswers(qs.questions),b=makeAnswers(qs.questions);
+await api('/api/session/'+encodeURIComponent(tokenA)+'/consent',{method:'POST',body:JSON.stringify({consent:true,versionNo:1})});
+await api('/api/session/'+encodeURIComponent(tokenB)+'/consent',{method:'POST',body:JSON.stringify({consent:true,versionNo:1})});
+log('Согласие обоих тестовых участников сохранено');
+await api('/api/session/'+encodeURIComponent(tokenA)+'/draft',{method:'PUT',body:JSON.stringify({answers:a,versionNo:1})});
+const resumed=await api('/api/session/'+encodeURIComponent(tokenA));
+if(Object.keys(resumed.ownDraftAnswers||{}).length!==125)throw new Error('Черновик Василия не восстановился полностью');
+log('Серверное сохранение и восстановление 125 ответов подтверждено');
+await api('/api/session/'+encodeURIComponent(tokenA)+'/submit',{method:'POST',body:JSON.stringify({answers:a,consent:true,versionNo:1})});
+const reportA1=await api('/api/report/'+encodeURIComponent(tokenA));
+if(!reportA1.ownReport||reportA1.partnerCompleted!==false||reportA1.comparison!==null)throw new Error('Личный отчёт/изоляция ответов до завершения второй анкеты работают неверно');
+log('Первый личный отчёт создан; ответы второго участника скрыты');
+const beforeB=await api('/api/session/'+encodeURIComponent(tokenB));
+if(beforeB.partnerCompleted!==false)throw new Error('Вторая сторона ошибочно отмечена завершившей до отправки');
+await api('/api/session/'+encodeURIComponent(tokenB)+'/submit',{method:'POST',body:JSON.stringify({answers:b,consent:true,versionNo:1})});
+log('Вторая анкета принята сервером');
+const reportA=await api('/api/report/'+encodeURIComponent(tokenA));
+const reportB=await api('/api/report/'+encodeURIComponent(tokenB));
+if(!reportA.partnerCompleted||!reportA.partnerReport||!reportA.comparison||!Array.isArray(reportA.comparison.dimensionComparison))throw new Error('Общий отчёт/сравнение не сформировались для роли A');
+if(!reportB.partnerCompleted||!reportB.partnerReport||!reportB.comparison)throw new Error('Общий отчёт не сформировался для роли B');
+if(Object.keys(reportA.ownReport.answers||{}).length!==125||Object.keys(reportA.partnerReport.answers||{}).length!==125)throw new Error('В отчёте отсутствуют ответы');
+log('Личный отчёт и общее сравнение доступны обеим сторонам');
+log('Проверка завершена успешно. Тестовая комната создана отдельно; настоящие ссылки не затронуты.');
+}catch(e){log('Проверка остановлена: '+e.message,false)}finally{button.disabled=false}}
+button.addEventListener('click',run);
+</script>
+</body></html>
