@@ -492,7 +492,9 @@ function renderAttemptHistory(history) {
 async function startNewAttempt() {
   if (!window.confirm('Начать новое прохождение? Предыдущие завершённые ответы и история останутся сохранены как отдельная версия.')) return;
   try {
-    const result = await api(`/api/session/${encodeURIComponent(sessionToken)}/new-attempt`, { method: 'POST', body: '{}' });
+    const result = await api(`/api/session/${encodeURIComponent(sessionToken)}/new-attempt`, {
+      method: 'POST', body: JSON.stringify({ versionNo: sessionInfo.currentVersionNo }),
+    });
     try { localStorage.removeItem(draftKey()); } catch (_) {}
     sessionInfo.currentVersionNo = result.versionNo;
     sessionInfo.consented = false;
