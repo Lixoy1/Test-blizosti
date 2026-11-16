@@ -340,17 +340,34 @@ app.put('/api/session/:token/draft', requireDatabase, async (req, res) => {
   try {
     const participant = await getParticipant(req.params.token);
     if (!participant) return res.status(404).json({ error: 'Ссылка не найдена или недействительна.' });
-    if (Number(req.body.versionNo) !== participant.current_version_no) return res.status(409).json({ error: 'Открыта предыдущая версия анкеты. Обнови страницу.' });
-    if (!participant.consented_at) return res.status(403).json({ error: 'Сначала подтверди согласие на сохранение ответов.' });
+    await client.query('BEGIN');
+    const locked = await client.query(
+      'SELECT current_version_no, consented_at FROM participants WHERE room_id = $1 AND role = $2 FOR UPDATE',
+      [participant.room_id, participant.role]
+    );
+    if (!locked.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Участник не найден.' });
+    }
+    const activeVersion = locked.rows[0].current_version_no;
+    if (Number(req.body.versionNo) !== activeVersion) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Открыта предыдущая версия анкеты. Обнови страницу.' });
+    }
+    if (!locked.rows[0].consented_at) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Сначала подтверди согласие на сохранение ответов.' });
+    }
+    const activeParticipant = { ...participant, current_version_no: activeVersion };
     const existing = await client.query(
       'SELECT id FROM submissions WHERE room_id = $1 AND role = $2 AND version_no = $3',
-      [participant.room_id, participant.role, participant.current_version_no]
+      [participant.room_id, participant.role, activeVersion]
     );
-    if (existing.rowCount) return res.status(409).json({ error: 'Эта версия анкеты уже завершена.' });
-    if (Number(req.body.versionNo) !== participant.current_version_no) return res.status(409).json({ error: 'Открыта предыдущая версия анкеты. Обнови страницу.' });
-    await client.query('BEGIN');
-    await client.query('SELECT id FROM participants WHERE room_id = $1 AND role = $2 FOR UPDATE', [participant.room_id, participant.role]);
-    await writeDraftSnapshot(client, participant, req.body.answers);
+    if (existing.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Эта версия анкеты уже завершена.' });
+    }
+    await writeDraftSnapshot(client, activeParticipant, req.body.answers);
     await client.query('COMMIT');
     res.json({ saved: true, versionNo: participant.current_version_no });
   } catch (error) {
@@ -371,20 +388,32 @@ app.post('/api/session/:token/submit', requireDatabase, async (req, res) => {
   try {
     const participant = await getParticipant(req.params.token);
     if (!participant) return res.status(404).json({ error: 'Ссылка не найдена или недействительна.' });
-    if (Number(req.body.versionNo) !== participant.current_version_no) return res.status(409).json({ error: 'Открыта предыдущая версия анкеты. Обнови страницу.' });
-    if (!participant.consented_at) return res.status(403).json({ error: 'Сначала подтверди согласие на сохранение ответов.' });
     await client.query('BEGIN');
-    await client.query(
-      'SELECT id FROM participants WHERE room_id = $1 AND role = $2 FOR UPDATE',
+    const locked = await client.query(
+      'SELECT current_version_no, consented_at FROM participants WHERE room_id = $1 AND role = $2 FOR UPDATE',
       [participant.room_id, participant.role]
     );
-    await writeDraftSnapshot(client, participant, req.body.answers);
+    if (!locked.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Участник не найден.' });
+    }
+    const activeVersion = locked.rows[0].current_version_no;
+    if (Number(req.body.versionNo) !== activeVersion) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Открыта предыдущая версия анкеты. Обнови страницу.' });
+    }
+    if (!locked.rows[0].consented_at) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Сначала подтверди согласие на сохранение ответов.' });
+    }
+    const activeParticipant = { ...participant, current_version_no: activeVersion };
+    await writeDraftSnapshot(client, activeParticipant, req.body.answers);
     const inserted = await client.query(
       `INSERT INTO submissions (room_id, role, version_no, answers, consent)
        VALUES ($1, $2, $3, $4::jsonb, TRUE)
        ON CONFLICT (room_id, role, version_no) DO NOTHING
        RETURNING id`,
-      [participant.room_id, participant.role, participant.current_version_no, JSON.stringify(req.body.answers)]
+      [participant.room_id, participant.role, activeVersion, JSON.stringify(req.body.answers)]
     );
     if (!inserted.rowCount) {
       await client.query('ROLLBACK');
@@ -396,7 +425,7 @@ app.post('/api/session/:token/submit', requireDatabase, async (req, res) => {
       [participant.room_id]
     );
     await client.query('COMMIT');
-    res.status(201).json({ saved: true, versionNo: participant.current_version_no, partnerCompleted: Boolean(partner) });
+    res.status(201).json({ saved: true, versionNo: activeVersion, partnerCompleted: Boolean(partner) });
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('submission_failed', error.message);
