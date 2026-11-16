@@ -29,10 +29,10 @@ const saveDraft = () => {
   if (!sessionToken || !sessionInfo?.consented || sessionInfo?.ownCompleted) return;
   if (draftTimer) clearTimeout(draftTimer);
   draftTimer = setTimeout(() => {
-    const snapshot = JSON.stringify({ answers });
+    const snapshot = JSON.stringify({ answers, versionNo: sessionInfo.currentVersionNo });
     draftInFlight = api(`/api/session/${encodeURIComponent(sessionToken)}/draft`, {
       method: 'PUT',
-      body: snapshot.slice(0, -1) + `, "versionNo": ${sessionInfo.currentVersionNo}}`,
+      body: snapshot,
     }).then(() => { lastDraftError = null; }).catch((error) => {
       lastDraftError = error;
       console.warn('Server draft save failed; local fallback remains available.', error);
@@ -193,7 +193,7 @@ function renderIntro() {
           <div class="rule-item"><span class="rule-icon">04</span><span>Завершённая версия остаётся в истории. Повторное прохождение создаёт новую версию и не заменяет прежнюю. После завершения обеих анкет участники видят общий отчёт и ответы друг друга.</span></div>
           <div class="rule-item"><span class="rule-icon">05</span><span>Это авторский проект для саморефлексии, а не диагноз и не научно-нормированный тест совместимости. В отчёте будут указаны ограничения переводов и интерпретаций.</span></div>
         </div>
-        <label class="consent-box"><input type="checkbox" id="consent" ${consentAccepted ? 'checked' : ''}><span>Я понимаю, что мои ответы будут сохранены и после завершения обеих анкет станут доступны обоим участникам в общем отчёте. Я прохожу анкету добровольно и отвечаю честно.</span></label>
+        <label class="consent-box"><input type="checkbox" id="consent" ${consentAccepted ? 'checked' : ''}><span>Я добровольно соглашаюсь на сохранение моих ответов и журнала их изменений в базе проекта. Администратор проекта технически имеет доступ к данным. После завершения обеих анкет финальные ответы станут доступны обоим участникам в общем отчёте. Я могу удалить свои ответы и историю.</span></label>
         <div class="intro-actions"><span class="fine">125 вопросов · ${currentIndex > 0 ? `продолжение с № ${currentIndex + 1}` : 'начало прохождения'}</span><button class="btn" id="start-quiz" ${consentAccepted ? '' : 'disabled'}>${currentIndex > 0 ? 'Продолжить' : 'Начать отвечать'} <span>→</span></button></div>
         ${consentAccepted ? '<div class="report-actions" style="margin-top:14px"><button class="btn btn-quiet" id="delete-my-data">Удалить мои ответы и историю</button></div>' : ''}
       </section>
