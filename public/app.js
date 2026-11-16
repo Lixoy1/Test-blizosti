@@ -108,7 +108,7 @@ function renderHome() {
       </article>
       <div class="between" aria-hidden="true">♡</div>
       <article class="person-card poison">
-        <img src="/assets/poison.webp" alt="Образ участницы Полины" fetchpriority="high">
+        <img src="/assets/poison.svg" alt="Образ участницы Полины" fetchpriority="high">
         <div class="person-meta"><small>участник B</small><strong>Полина</strong><span>свой взгляд на отношения</span></div>
       </article>
     </section>
