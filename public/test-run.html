@@ -44,7 +44,7 @@ const reportA1=await api('/api/report/'+encodeURIComponent(tokenA));
 if(!reportA1.ownReport||reportA1.partnerCompleted!==false||reportA1.comparison!==null)throw new Error('Личный отчёт/изоляция ответов до завершения второй анкеты работают неверно');
 log('Первый личный отчёт создан; ответы второго участника скрыты');
 const beforeB=await api('/api/session/'+encodeURIComponent(tokenB));
-if(beforeB.partnerCompleted!==false)throw new Error('Вторая сторона ошибочно отмечена завершившей до отправки');
+if(beforeB.ownCompleted!==false||beforeB.partnerCompleted!==true)throw new Error('Статусы второй стороны до отправки определены неверно');
 await api('/api/session/'+encodeURIComponent(tokenB)+'/submit',{method:'POST',body:JSON.stringify({answers:b,consent:true,versionNo:1})});
 log('Вторая анкета принята сервером');
 const reportA=await api('/api/report/'+encodeURIComponent(tokenA));
