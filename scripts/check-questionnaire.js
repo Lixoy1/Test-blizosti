@@ -58,7 +58,7 @@ assert.equal(optimistBuffer.toString('ascii', 8, 12), 'WEBP', 'Optimist artwork 
 const poisonPath = path.join(__dirname, '..', 'public', 'assets', 'poison.svg');
 const poisonSvg = fs.readFileSync(poisonPath, 'utf8');
 assert.ok(poisonSvg.length > 1000, 'Poison SVG artwork must not be empty');
-assert.match(poisonSvg, /<svg[\\s>]/i, 'Poison artwork must be an SVG');
+assert.ok(poisonSvg.trimStart().startsWith('<svg'), 'Poison artwork must be an SVG');
 assert.match(poisonSvg, /POISON/, 'Poison artwork must include its visual mark');
 assert.ok(data.scoringNotes?.personality && data.scoringNotes?.love && data.scoringNotes?.compatibility, 'Scoring limitations must be documented');
 console.log('Questionnaire check passed: 125 mandatory items, 8 blocks, Big Five 50, TLS-15 15, 15 dimensions, Optimist WebP and Poison SVG assets.');
