@@ -441,16 +441,24 @@ app.post('/api/session/:token/new-attempt', requireDatabase, async (req, res) =>
     const participant = await getParticipant(req.params.token);
     if (!participant) return res.status(404).json({ error: 'Ссылка не найдена или недействительна.' });
     await client.query('BEGIN');
-    await client.query('SELECT id FROM participants WHERE room_id = $1 AND role = $2 FOR UPDATE', [participant.room_id, participant.role]);
+    const locked = await client.query(
+      'SELECT current_version_no FROM participants WHERE room_id = $1 AND role = $2 FOR UPDATE',
+      [participant.room_id, participant.role]
+    );
+    if (!locked.rowCount || Number(req.body.versionNo) !== locked.rows[0].current_version_no) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Версия анкеты уже изменилась. Обнови страницу.' });
+    }
+    const activeVersion = locked.rows[0].current_version_no;
     const completed = await client.query(
       'SELECT id FROM submissions WHERE room_id = $1 AND role = $2 AND version_no = $3',
-      [participant.room_id, participant.role, participant.current_version_no]
+      [participant.room_id, participant.role, activeVersion]
     );
     if (!completed.rowCount) {
       await client.query('ROLLBACK');
       return res.status(409).json({ error: 'Сначала заверши текущую анкету. Начать новую версию можно только после отправки.' });
     }
-    const nextVersion = participant.current_version_no + 1;
+    const nextVersion = activeVersion + 1;
     await client.query(
       'UPDATE participants SET current_version_no = $3, consented_at = NULL WHERE room_id = $1 AND role = $2',
       [participant.room_id, participant.role, nextVersion]
