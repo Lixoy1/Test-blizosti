@@ -2,28 +2,53 @@
 
 const app = document.getElementById('app');
 const PARTNER_NAMES = { A: 'Василий', B: 'Полина' };
-const DRAFT_PREFIX = 'mn-draft-v1-';
+const DRAFT_PREFIX = 'mn-draft-v2-';
 let questionSet;
 let sessionToken = null;
 let sessionInfo = null;
 let answers = {};
 let currentIndex = 0;
 let consentAccepted = false;
-let sessionError = null;
+let draftTimer = null;
+let draftInFlight = Promise.resolve();
+let lastDraftError = null;
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[char]));
 const safeText = (value) => escapeHtml(value).replace(/\n/g, '<br>');
-const draftKey = () => `${DRAFT_PREFIX}${sessionToken}`;
-const saveDraft = () => {
-  try { localStorage.setItem(draftKey(), JSON.stringify(answers)); } catch (_) { /* local draft is optional */ }
-};
+const draftKey = () => `${DRAFT_PREFIX}${sessionToken}-v${sessionInfo?.currentVersionNo || 1}`;
 const loadDraft = () => {
   try {
     const stored = localStorage.getItem(draftKey());
     return stored ? JSON.parse(stored) : {};
   } catch (_) { return {}; }
+};
+const saveDraft = () => {
+  try { localStorage.setItem(draftKey(), JSON.stringify(answers)); } catch (_) { /* optional local fallback */ }
+  if (!sessionToken || !sessionInfo?.consented || sessionInfo?.ownCompleted) return;
+  if (draftTimer) clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => {
+    const snapshot = JSON.stringify({ answers });
+    draftInFlight = api(`/api/session/${encodeURIComponent(sessionToken)}/draft`, {
+      method: 'PUT',
+      body: snapshot,
+    }).then(() => { lastDraftError = null; }).catch((error) => {
+      lastDraftError = error;
+      console.warn('Server draft save failed; local fallback remains available.', error);
+    });
+  }, 350);
+};
+const flushDraft = async () => {
+  if (draftTimer) clearTimeout(draftTimer);
+  draftTimer = null;
+  await draftInFlight;
+  if (!sessionToken || !sessionInfo?.consented || sessionInfo?.ownCompleted) return;
+  await api(`/api/session/${encodeURIComponent(sessionToken)}/draft`, {
+    method: 'PUT',
+    body: JSON.stringify({ answers }),
+  });
+  lastDraftError = null;
 };
 const api = async (url, options = {}) => {
   const response = await fetch(url, {
@@ -136,13 +161,14 @@ async function createRoom(event) {
 async function loadParticipant() {
   try {
     sessionInfo = await api(`/api/session/${encodeURIComponent(sessionToken)}`);
-    consentAccepted = localStorage.getItem(`${draftKey()}-consent`) === 'yes';
+    consentAccepted = Boolean(sessionInfo.consented);
     if (sessionInfo.ownCompleted) {
       answers = sessionInfo.ownAnswers || {};
       await loadReport();
       return;
     }
-    answers = loadDraft();
+    answers = sessionInfo.ownDraftAnswers || {};
+    if (!Object.keys(answers).length) answers = loadDraft();
     renderIntro();
   } catch (error) {
     renderError(error.message);
@@ -157,15 +183,16 @@ function renderIntro() {
       <header class="page-head"><div class="eyebrow">твой взгляд на отношения</div><h1>Привет, ${escapeHtml(sessionInfo.displayName)}.</h1><p>Здесь не нужно угадывать, что хочет услышать другой человек. Важно только то, что действительно думаешь и чувствуешь ты.</p></header>
       <section class="panel intro-card">
         <h2>Перед началом — несколько важных вещей</h2>
-        <p>Анкета состоит из 60 обязательных вопросов. В ней есть шкалы, выбор вариантов и несколько вопросов, где нужно ответить своими словами. Пропустить вопрос не получится: свободный ответ тоже должен быть содержательным.</p>
+        <p>Анкета состоит из 125 обязательных вопросов: 60 о вашей связи, 50 о характере по пятифакторной модели Big Five и 15 о близости, страсти и обязательствах по модели треугольной любви. Прохождение разделено на смысловые части.</p>
         <div class="rule-list">
           <div class="rule-item"><span class="rule-icon">01</span><span>Отвечай самостоятельно, не обсуждая варианты с партнёром во время прохождения.</span></div>
           <div class="rule-item"><span class="rule-icon">02</span><span>Можно не знать точного ответа. В таком случае выбирай наиболее близкий вариант, а не тот, который выглядит правильным.</span></div>
-          <div class="rule-item"><span class="rule-icon">03</span><span>Черновик сохраняется только в этом браузере. После финальной отправки ответы записываются в закрытое хранилище.</span></div>
-          <div class="rule-item"><span class="rule-icon">04</span><span>После отправки изменить анкету нельзя. Когда оба участника закончат, каждый увидит свой отчёт и общий сравнительный отчёт — включая ответы друг друга.</span></div>
+          <div class="rule-item"><span class="rule-icon">03</span><span>После согласия каждый ответ автоматически сохраняется на сервере. Можно закрыть страницу и продолжить по своей ссылке с другого устройства.</span></div>
+          <div class="rule-item"><span class="rule-icon">04</span><span>Завершённая версия остаётся в истории. Повторное прохождение создаёт новую версию и не заменяет прежнюю. После завершения обеих анкет участники видят общий отчёт и ответы друг друга.</span></div>
+          <div class="rule-item"><span class="rule-icon">05</span><span>Это авторский проект для саморефлексии, а не диагноз и не научно-нормированный тест совместимости. В отчёте будут указаны ограничения переводов и интерпретаций.</span></div>
         </div>
         <label class="consent-box"><input type="checkbox" id="consent" ${consentAccepted ? 'checked' : ''}><span>Я понимаю, что мои ответы будут сохранены и после завершения обеих анкет станут доступны обоим участникам в общем отчёте. Я прохожу анкету добровольно и отвечаю честно.</span></label>
-        <div class="intro-actions"><span class="fine">60 вопросов · ориентировочно 15–25 минут</span><button class="btn" id="start-quiz" ${consentAccepted ? '' : 'disabled'}>Начать отвечать <span>→</span></button></div>
+        <div class="intro-actions"><span class="fine">125 вопросов · можно проходить по частям</span><button class="btn" id="start-quiz" ${consentAccepted ? '' : 'disabled'}>Начать отвечать <span>→</span></button></div>
       </section>
     </div>`;
   const checkbox = document.getElementById('consent');
@@ -173,12 +200,24 @@ function renderIntro() {
   checkbox.addEventListener('change', () => {
     consentAccepted = checkbox.checked;
     startButton.disabled = !consentAccepted;
-    try { localStorage.setItem(`${draftKey()}-consent`, consentAccepted ? 'yes' : 'no'); } catch (_) {}
   });
-  startButton.addEventListener('click', () => {
-    if (!consentAccepted) return;
-    currentIndex = 0;
-    renderQuestion();
+  startButton.addEventListener('click', async () => {
+    if (!checkbox.checked) return;
+    startButton.disabled = true;
+    startButton.textContent = 'Сохраняем согласие…';
+    try {
+      await api(`/api/session/${encodeURIComponent(sessionToken)}/consent`, {
+        method: 'POST', body: JSON.stringify({ consent: true }),
+      });
+      sessionInfo.consented = true;
+      consentAccepted = true;
+      currentIndex = 0;
+      renderQuestion();
+    } catch (error) {
+      startButton.disabled = false;
+      startButton.innerHTML = 'Начать отвечать <span>→</span>';
+      toast(error.message);
+    }
   });
 }
 
@@ -198,7 +237,8 @@ function renderQuestion() {
   const value = answers[String(q.id)];
   let controls = '';
   if (q.type === 'scale') {
-    controls = `<div class="scale-list">${questionSet.scale.map((option) => `
+    const scaleOptions = questionSet.scales?.[q.scaleType || 'default'] || questionSet.scale;
+    controls = `<div class="scale-list">${scaleOptions.map((option) => `
       <button class="scale-option ${value === option.value ? 'selected' : ''}" data-scale="${option.value}" aria-pressed="${value === option.value}">
         <strong>${option.value}</strong><span>${escapeHtml(option.label)}</span>
       </button>`).join('')}</div>`;
@@ -214,7 +254,7 @@ function renderQuestion() {
   app.innerHTML = `
     <div class="content-wrap">
       <div class="quiz-top">
-        <div class="quiz-topline"><span class="quiz-block">${escapeHtml(block.title)}</span><span class="quiz-counter">ВОПРОС ${String(q.id).padStart(2,'0')} / 60</span></div>
+        <div class="quiz-topline"><span class="quiz-block">${escapeHtml(block.title)}</span><span class="quiz-counter">ВОПРОС ${String(q.id).padStart(3,'0')} / ${questionSet.questions.length}</span></div>
         <div class="progress-track"><div class="progress-fill" style="width:${Math.max(2, progress)}%"></div></div>
       </div>
       <section class="panel question-card" key="q-${q.id}">
@@ -227,7 +267,7 @@ function renderQuestion() {
         <button class="nav-back" id="previous" ${currentIndex === 0 ? 'disabled' : ''}>← Назад</button>
         <button class="btn" id="next">${currentIndex === questionSet.questions.length - 1 ? 'Завершить анкету' : 'Следующий вопрос'} <span>→</span></button>
       </div>
-      <div class="autosave">Черновик сохраняется на этом устройстве автоматически</div>
+      <div class="autosave">Черновик автоматически сохраняется в защищённом серверном хранилище</div>
     </div>`;
 
   app.querySelectorAll('[data-scale]').forEach((button) => button.addEventListener('click', () => {
@@ -257,12 +297,18 @@ function renderQuestion() {
       else app.querySelector('.scale-option, .choice-option')?.focus();
       return;
     }
-    if (currentIndex < questionSet.questions.length - 1) {
-      currentIndex += 1;
-      renderQuestion();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      await submitAnswers();
+    try {
+      await flushDraft();
+      if (currentIndex < questionSet.questions.length - 1) {
+        currentIndex += 1;
+        renderQuestion();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        await submitAnswers();
+      }
+    } catch (error) {
+      document.getElementById('question-error').textContent = 'Не удалось сохранить черновик. Проверь интернет и повтори попытку.';
+      toast(error.message);
     }
   });
 }
@@ -270,8 +316,9 @@ function renderQuestion() {
 async function submitAnswers() {
   const button = document.getElementById('next');
   button.disabled = true;
-  button.textContent = 'Сохраняем ответы…';
+  button.textContent = 'Сохраняем 125 ответов…';
   try {
+    await flushDraft();
     await api(`/api/session/${encodeURIComponent(sessionToken)}/submit`, {
       method: 'POST', body: JSON.stringify({ answers, consent: true }),
     });
@@ -352,9 +399,11 @@ function renderComparison(report) {
 function downloadReport(report) {
   const payload = {
     project: 'Между нами',
+    questionnaireVersion: questionSet.version,
     exportedAt: new Date().toISOString(),
     participant: sessionInfo.displayName,
     personalReport: report.ownReport,
+    partnerReport: report.partnerReport || null,
     comparativeReport: report.comparison,
     partnerCompleted: report.partnerCompleted,
   };
