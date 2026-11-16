@@ -590,7 +590,16 @@ app.delete('/api/session/:token/data', requireDatabase, async (req, res) => {
 });
 
 const publicDir = path.join(__dirname, 'public');
-app.use(express.static(publicDir, { extensions: ['html'], maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }));
+app.use(express.static(publicDir, {
+  extensions: ['html'],
+  maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
+  setHeaders(res, filePath) {
+    // HTML and app bundles must revalidate immediately after a deploy.
+    if (/\.(?:html|js|css)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-store, max-age=0');
+    }
+  }
+}));
 app.get('/p/:token', (_req, res) => res.sendFile(path.join(publicDir, 'index.html')));
 app.get('*', (_req, res) => res.sendFile(path.join(publicDir, 'index.html')));
 
