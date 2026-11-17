@@ -61,4 +61,28 @@ assert.ok(poisonSvg.length > 1000, 'Poison SVG artwork must not be empty');
 assert.ok(poisonSvg.trimStart().startsWith('<svg'), 'Poison artwork must be an SVG');
 assert.match(poisonSvg, /POISON/, 'Poison artwork must include its visual mark');
 assert.ok(data.scoringNotes?.personality && data.scoringNotes?.love && data.scoringNotes?.compatibility, 'Scoring limitations must be documented');
-console.log('Questionnaire check passed: 125 mandatory items, 8 blocks, Big Five 50, TLS-15 15, 15 dimensions, Optimist WebP and Poison SVG assets.');
+const intimacy = require('../public/intimacy-questions.json');
+assert.equal(intimacy.questions.length, 90, 'Intimacy questionnaire must contain exactly 90 questions');
+assert.equal(intimacy.blocks.length, 10, 'Intimacy questionnaire must contain ten blocks');
+assert.equal(new Set(intimacy.questions.map((q) => q.id)).size, 90, 'Intimacy question IDs must be unique');
+assert.deepEqual(intimacy.questions.map((q) => q.id), Array.from({ length: 90 }, (_, i) => i + 1), 'Intimacy IDs must run from 1 to 90');
+const intimacyCounts = { desire:10, oral:10, penetrative:10, anal:8, roles:10, fantasies:10, distance:8, pleasure:10, boundaries:10, personal:4 };
+for (const [blockId, count] of Object.entries(intimacyCounts)) {
+  assert.ok(intimacy.blocks.some((block) => block.id === blockId), `Missing intimacy block ${blockId}`);
+  assert.equal(intimacy.questions.filter((q) => q.block === blockId).length, count, `Intimacy block ${blockId} must contain ${count} items`);
+}
+for (const q of intimacy.questions) {
+  assert.ok(q.text && typeof q.text.A === 'string' && q.text.A.length > 0, `Intimacy question ${q.id} needs an A prompt`);
+  assert.ok(q.text && typeof q.text.B === 'string' && q.text.B.length > 0, `Intimacy question ${q.id} needs a B prompt`);
+  assert.ok(q.optional === true && q.privateAllowed === true, `Intimacy question ${q.id} must allow skip and private visibility`);
+  assert.ok(['scale','single','multi','text','practice'].includes(q.type), `Unsupported intimacy question type: ${q.type}`);
+  if (q.type === 'single' || q.type === 'multi') {
+    assert.ok(Array.isArray(q.options) && q.options.length >= 2, `Intimacy question ${q.id} needs options`);
+    assert.equal(new Set(q.options.map((o) => o.value)).size, q.options.length, `Duplicate choices in intimacy question ${q.id}`);
+  }
+  if (q.type === 'text') assert.ok(Number.isInteger(q.minLength) && q.minLength >= 5 && q.minLength <= 3000, `Intimacy text question ${q.id} has invalid minLength`);
+  if (q.type === 'practice') {
+    for (const field of ['experience','desire','comfort']) assert.ok(intimacy.practiceFields[field]?.length >= 2, `Practice field ${field} is missing options`);
+  }
+}
+console.log('Questionnaire checks passed: relationship 125 questions + intimacy 90 questions, 18 blocks combined.');
