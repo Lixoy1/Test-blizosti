@@ -44,11 +44,25 @@
     qs().forEach((q) => { const a = state.answers[key(q)]; if (valid(q,a)) out[key(q)] = a; });
     return out;
   }
+  function draftable() {
+    const out = {};
+    qs().forEach((q) => {
+      const a = state.answers[key(q)];
+      if (!a) return;
+      if (a.skipped === true) { out[key(q)] = a; return; }
+      if (!['shared','private'].includes(a.visibility)) return;
+      if (q.type === 'text' && typeof a.value === 'string' && a.value.length <= 3000) out[key(q)] = a;
+      else if (q.type === 'practice' && ['experience','desire','comfort'].some((field) => a[field] !== undefined)) out[key(q)] = a;
+      else if (q.type === 'multi' && Array.isArray(a.value) && a.value.every((v) => q.options.some((o) => o.value === v))) out[key(q)] = a;
+      else if (valid(q,a)) out[key(q)] = a;
+    });
+    return out;
+  }
   function save() {
     if (!state.session || !state.session.consented || state.session.completed) return;
     clearTimeout(state.timer);
     state.timer = setTimeout(() => {
-      const payload = JSON.stringify({answers:savable()});
+      const payload = JSON.stringify({answers:draftable()});
       state.pending = state.pending.catch(() => {}).then(() => req(API + "/draft",{method:"PUT",body:payload})).catch((e) => { console.warn("Intimacy draft save failed",e); toast("Черновик пока не сохранился. Проверь соединение."); });
     },450);
   }
@@ -94,7 +108,7 @@
     root.querySelectorAll("[data-scale]").forEach((btn)=>btn.addEventListener("click",()=>{const old=state.answers[key(q)]||{visibility:"shared"};state.answers[key(q)]={value:Number(btn.dataset.scale),visibility:old.visibility||"shared"};save();renderQuestion();}));
     root.querySelectorAll("[data-single]").forEach((btn)=>btn.addEventListener("click",()=>{const old=state.answers[key(q)]||{visibility:"shared"};state.answers[key(q)]={value:btn.dataset.single,visibility:old.visibility||"shared"};save();renderQuestion();}));
     root.querySelectorAll("[data-multi]").forEach((input)=>input.addEventListener("change",()=>{const old=state.answers[key(q)]||{visibility:"shared"},vals=new Set(Array.isArray(old.value)?old.value:[]);if(input.checked)vals.add(input.dataset.multi);else vals.delete(input.dataset.multi);const next=Array.from(vals);if(q.maxSelections&&next.length>q.maxSelections){input.checked=false;toast("Можно выбрать не более "+q.maxSelections+" вариантов.");return;}state.answers[key(q)]={value:next,visibility:old.visibility||"shared"};save();renderQuestion();}));
-    root.querySelectorAll("[data-practice]").forEach((sel)=>sel.addEventListener("change",()=>{const old=state.answers[key(q)]||{visibility:"shared"},next={...old};if(sel.dataset.practice==="comfort")next.comfort=Number(sel.value);else next[sel.dataset.practice]=sel.value;state.answers[key(q)]=next;save();}));
+    root.querySelectorAll("[data-practice]").forEach((sel)=>sel.addEventListener("change",()=>{const old=state.answers[key(q)]||{visibility:"shared"},next={...old};if(sel.value==="")delete next[sel.dataset.practice];else if(sel.dataset.practice==="comfort")next.comfort=Number(sel.value);else next[sel.dataset.practice]=sel.value;state.answers[key(q)]=next;save();}));
     const ta=document.getElementById("intimacy-text");if(ta)ta.addEventListener("input",()=>{const old=state.answers[key(q)]||{visibility:"shared"};state.answers[key(q)]={value:ta.value,visibility:old.visibility||"shared"};save();});
     document.getElementById("intimacy-private").addEventListener("change",()=>{const old=state.answers[key(q)]||{visibility:"shared"};visibility(old);});
     document.getElementById("intimacy-back").addEventListener("click",()=>{if(state.index>0){state.index--;renderQuestion();}});
