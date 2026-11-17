@@ -61,7 +61,7 @@ async function requireDatabase(_req, res, next) {
 async function getParticipant(token) {
   if (!validToken(token)) return null;
   const result = await pool.query(
-    `SELECT p.room_id, p.role, p.display_name, p.current_version_no, p.consented_at, p.intimacy_consented_at,
+    `SELECT p.id, p.room_id, p.role, p.display_name, p.current_version_no, p.consented_at, p.intimacy_consented_at,
             r.created_at, r.status
        FROM participants p
        JOIN rooms r ON r.id = p.room_id
@@ -70,6 +70,24 @@ async function getParticipant(token) {
     [sha256(token)]
   );
   return result.rows[0] || null;
+}
+
+async function getIntimacyPartner(participant) {
+  const linked = await pool.query(
+    `SELECT p.id, p.room_id, p.role, p.display_name
+       FROM intimacy_pair_links l
+       JOIN participants p
+         ON p.id = CASE WHEN l.participant_a_id = $1 THEN l.participant_b_id ELSE l.participant_a_id END
+      WHERE l.participant_a_id = $1 OR l.participant_b_id = $1
+      LIMIT 1`,
+    [participant.id]
+  );
+  if (linked.rows[0]) return linked.rows[0];
+  const sameRoom = await pool.query(
+    'SELECT id, room_id, role, display_name FROM participants WHERE room_id = $1 AND role = $2 LIMIT 1',
+    [participant.room_id, participant.role === 'A' ? 'B' : 'A']
+  );
+  return sameRoom.rows[0] || null;
 }
 
 function validSingle(question, value) {
@@ -804,15 +822,74 @@ app.delete('/api/session/:token/data', requireDatabase, async (req, res) => {
 });
 
 
+// Recover a pair whose two completed intimacy submissions were accidentally stored under separate rooms.
+app.post('/api/intimacy/recover-pair', requireDatabase, async (req, res) => {
+  const tokenA = req.body?.tokenA;
+  const tokenB = req.body?.tokenB;
+  if (!validToken(tokenA) || !validToken(tokenB) || tokenA === tokenB) {
+    return res.status(400).json({ error: 'Нужны две разные действующие личные ссылки.' });
+  }
+  const client = await pool.connect();
+  try {
+    const [participantA, participantB] = await Promise.all([getParticipant(tokenA), getParticipant(tokenB)]);
+    if (!participantA || !participantB) return res.status(404).json({ error: 'Одна из ссылок не найдена.' });
+    if (participantA.role !== 'A' || participantB.role !== 'B') {
+      return res.status(400).json({ error: 'Ссылки должны принадлежать участникам A и B в правильном порядке.' });
+    }
+    if (participantA.id === participantB.id) return res.status(400).json({ error: 'Это одна и та же ссылка.' });
+
+    const [submissionA, submissionB] = await Promise.all([
+      pool.query('SELECT 1 FROM intimacy_submissions WHERE room_id = $1 AND role = $2', [participantA.room_id, participantA.role]),
+      pool.query('SELECT 1 FROM intimacy_submissions WHERE room_id = $1 AND role = $2', [participantB.room_id, participantB.role]),
+    ]);
+    if (!participantA.intimacy_consented_at || !participantB.intimacy_consented_at || !submissionA.rowCount || !submissionB.rowCount) {
+      return res.status(409).json({ error: 'Обе стороны должны иметь отдельное согласие и завершённую интимную анкету.' });
+    }
+
+    if (participantA.room_id !== participantB.room_id) {
+      await client.query('BEGIN');
+      const existing = await client.query(
+        'SELECT participant_a_id, participant_b_id FROM intimacy_pair_links WHERE participant_a_id = $1 OR participant_b_id = $1 OR participant_a_id = $2 OR participant_b_id = $2 FOR UPDATE',
+        [participantA.id, participantB.id]
+      );
+      if (existing.rowCount) {
+        const alreadyPaired = existing.rows.some((row) =>
+          String(row.participant_a_id) === String(participantA.id) && String(row.participant_b_id) === String(participantB.id)
+        );
+        if (!alreadyPaired) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: 'Одна из ссылок уже связана с другой парой. Данные не изменены.' });
+        }
+      } else {
+        await client.query(
+          'INSERT INTO intimacy_pair_links (participant_a_id, participant_b_id) VALUES ($1, $2)',
+          [participantA.id, participantB.id]
+        );
+      }
+      await client.query('COMMIT');
+    }
+    res.json({ linked: true, participantA: 'Василий', participantB: 'Полина', answersChanged: false });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('intimacy_pair_recovery_failed', error.message);
+    res.status(500).json({ error: 'Не удалось связать анкеты. Ответы не изменены.' });
+  } finally {
+    client.release();
+  }
+});
+
 // Adult intimacy questionnaire: stored independently from the relationship questionnaire.
 app.get('/api/intimacy/:token', requireDatabase, async (req, res) => {
   try {
     const participant = await getParticipant(req.params.token);
     if (!participant) return res.status(404).json({ error: 'Ссылка не найдена или недействительна.' });
+    const partnerParticipant = await getIntimacyPartner(participant);
     const [own, draft, partner] = await Promise.all([
       pool.query('SELECT answers, completed_at FROM intimacy_submissions WHERE room_id = $1 AND role = $2', [participant.room_id, participant.role]),
       pool.query('SELECT answers, updated_at FROM intimacy_drafts WHERE room_id = $1 AND role = $2', [participant.room_id, participant.role]),
-      pool.query('SELECT completed_at FROM intimacy_submissions WHERE room_id = $1 AND role = $2', [participant.room_id, participant.role === 'A' ? 'B' : 'A']),
+      partnerParticipant
+        ? pool.query('SELECT completed_at FROM intimacy_submissions WHERE room_id = $1 AND role = $2', [partnerParticipant.room_id, partnerParticipant.role])
+        : Promise.resolve({ rows: [] }),
     ]);
     res.json({
       role: participant.role, displayName: participant.display_name,
@@ -900,10 +977,13 @@ app.get('/api/intimacy-report/:token', requireDatabase, async (req, res) => {
     const participant = await getParticipant(req.params.token);
     if (!participant) return res.status(404).json({ error: 'Ссылка не найдена или недействительна.' });
     const ownRole = participant.role;
-    const partnerRole = ownRole === 'A' ? 'B' : 'A';
+    const partnerParticipant = await getIntimacyPartner(participant);
+    const partnerRole = partnerParticipant?.role || (ownRole === 'A' ? 'B' : 'A');
     const [own, partner] = await Promise.all([
       pool.query('SELECT answers, completed_at FROM intimacy_submissions WHERE room_id = $1 AND role = $2', [participant.room_id, ownRole]),
-      pool.query('SELECT answers, completed_at FROM intimacy_submissions WHERE room_id = $1 AND role = $2', [participant.room_id, partnerRole]),
+      partnerParticipant
+        ? pool.query('SELECT answers, completed_at FROM intimacy_submissions WHERE room_id = $1 AND role = $2', [partnerParticipant.room_id, partnerParticipant.role])
+        : Promise.resolve({ rows: [] }),
     ]);
     if (!own.rows[0]) return res.status(409).json({ error: 'Сначала заверши интимную анкету.' });
     const ownAnswers = own.rows[0].answers;
@@ -930,6 +1010,30 @@ app.get('/api/intimacy-report/:token', requireDatabase, async (req, res) => {
     console.error('intimacy_report_failed', error.message);
     res.status(500).json({ error: 'Не удалось сформировать интимный отчёт.' });
   }
+});
+
+// A small confirmation page: opening the URL is read-only; pairing happens only after a button click.
+app.get('/recover-intimacy-pair', (req, res) => {
+  const tokenA = String(req.query.a || '');
+  const tokenB = String(req.query.b || '');
+  if (!validToken(tokenA) || !validToken(tokenB) || tokenA === tokenB) {
+    return res.status(400).send('Некорректные ссылки участников.');
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('html').send(`<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Восстановление отчёта</title><body style="margin:0;background:#171522;color:#f4edf2;font:16px system-ui;display:grid;place-items:center;min-height:100vh;padding:24px;box-sizing:border-box"><main style="max-width:520px;border:1px solid #51485a;border-radius:20px;padding:28px;background:#211e2b"><h1>Восстановить общий отчёт</h1><p>Будут связаны две завершённые анкеты — Василия и Полины. Сами ответы не изменяются и не перезаписываются.</p><button id="go" style="padding:14px 20px;border:0;border-radius:999px;background:#d9b978;color:#211e2b;font-weight:700">Связать анкеты и собрать анализ</button><p id="status" aria-live="polite"></p></main><script>
+const a=${JSON.stringify(tokenA)},b=${JSON.stringify(tokenB)};
+document.getElementById('go').addEventListener('click',async()=>{
+ const button=document.getElementById('go'),status=document.getElementById('status');
+ button.disabled=true;status.textContent='Проверяем обе анкеты…';
+ try{
+  const response=await fetch('/api/intimacy/recover-pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tokenA:a,tokenB:b})});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||'Не удалось восстановить пару');
+  status.textContent='Анкеты связаны. Ответы не изменены. Теперь откройте отчёт по каждой личной ссылке.';
+  button.textContent='Готово';
+ }catch(error){status.textContent=error.message;button.disabled=false;}
+});
+</script></body></html>`);
 });
 
 app.delete('/api/intimacy/:token/data', requireDatabase, async (req, res) => {
