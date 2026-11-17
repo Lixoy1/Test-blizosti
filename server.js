@@ -267,9 +267,52 @@ function intimacyAnswerLabel(question, answer) {
   return String(answer.value ?? '');
 }
 
+function compareOralActivities(answersA, answersB) {
+  const definitions = [
+    { id: 'blowjob', title: 'Минет: Полина делает, Василий получает', receiver: { role: 'A', practiceId: 11, textId: 12 }, giver: { role: 'B', practiceId: 14, textId: 15 } },
+    { id: 'cunnilingus', title: 'Куннилингус: Василий делает, Полина получает', receiver: { role: 'B', practiceId: 11, textId: 12 }, giver: { role: 'A', practiceId: 14, textId: 15 } },
+  ];
+  const answersFor = (role) => role === 'A' ? answersA : answersB;
+  return definitions.map((definition) => {
+    const receiverAnswers = answersFor(definition.receiver.role);
+    const giverAnswers = answersFor(definition.giver.role);
+    const receiver = receiverAnswers[String(definition.receiver.practiceId)];
+    const giver = giverAnswers[String(definition.giver.practiceId)];
+    if (!isSharedIntimacyAnswer(receiver) || !isSharedIntimacyAnswer(giver)) return null;
+    const fields = INTIMACY_QUESTIONNAIRE.practiceFields;
+    const receiverQuestion = INTIMACY_QUESTION_BY_ID.get(String(definition.receiver.practiceId));
+    const giverQuestion = INTIMACY_QUESTION_BY_ID.get(String(definition.giver.practiceId));
+    const receiverTextAnswer = receiverAnswers[String(definition.receiver.textId)];
+    const giverTextAnswer = giverAnswers[String(definition.giver.textId)];
+    return {
+      id: definition.id,
+      title: definition.title,
+      receiver: {
+        participant: definition.receiver.role === 'A' ? 'Василий' : 'Полина',
+        prompt: receiverQuestion.text[definition.receiver.role],
+        experience: fields.experience.find((option) => option.value === receiver.experience)?.label || receiver.experience,
+        desire: fields.desire.find((option) => option.value === receiver.desire)?.label || receiver.desire,
+        comfort: receiver.comfort,
+        note: isSharedIntimacyAnswer(receiverTextAnswer) ? receiverTextAnswer.value : null,
+      },
+      giver: {
+        participant: definition.giver.role === 'A' ? 'Василий' : 'Полина',
+        prompt: giverQuestion.text[definition.giver.role],
+        experience: fields.experience.find((option) => option.value === giver.experience)?.label || giver.experience,
+        desire: fields.desire.find((option) => option.value === giver.desire)?.label || giver.desire,
+        comfort: giver.comfort,
+        note: isSharedIntimacyAnswer(giverTextAnswer) ? giverTextAnswer.value : null,
+      },
+      desireCategoriesMatch: receiver.desire === giver.desire,
+      comfortGap: Math.abs(receiver.comfort - giver.comfort),
+    };
+  }).filter(Boolean);
+}
+
 function compareIntimacyAnswers(answersA, answersB) {
   const rows = [];
   for (const question of INTIMACY_QUESTIONS) {
+    if ([11, 12, 14, 15].includes(question.id)) continue;
     const a = answersA[String(question.id)];
     const b = answersB[String(question.id)];
     if (!isSharedIntimacyAnswer(a) || !isSharedIntimacyAnswer(b)) continue;
@@ -305,6 +348,7 @@ function compareIntimacyAnswers(answersA, answersB) {
   }
   return {
     rows,
+    oralPairs: compareOralActivities(answersA, answersB),
     sharedCount: rows.length,
     closeScale: rows.filter((row) => row.type === 'scale' && row.gap <= 1).length,
     differentScale: rows.filter((row) => row.type === 'scale' && row.gap > 1).length,
