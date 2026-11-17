@@ -61,7 +61,7 @@ async function requireDatabase(_req, res, next) {
 async function getParticipant(token) {
   if (!validToken(token)) return null;
   const result = await pool.query(
-    `SELECT p.room_id, p.role, p.display_name, p.current_version_no, p.consented_at,
+    `SELECT p.room_id, p.role, p.display_name, p.current_version_no, p.consented_at, p.intimacy_consented_at,
             r.created_at, r.status
        FROM participants p
        JOIN rooms r ON r.id = p.room_id
