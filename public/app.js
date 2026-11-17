@@ -133,12 +133,14 @@ function renderHome() {
           <h3>Отношения и близость</h3>
           <p>Чувства, доверие, характер, ожидания, готовность к реальным шагам и общему будущему.</p>
           <div class="test-choice-meta">125 вопросов · личные и общий отчёты</div>
+          <button class="btn btn-secondary test-choice-action" id="choose-relationship">Выбрать этот тест <span>→</span></button>
         </article>
         <article class="test-choice adult-test">
           <div class="test-choice-top"><span class="test-choice-icon">18+</span><span class="test-choice-tag">ДОПОЛНИТЕЛЬНЫЙ</span></div>
           <h3>Интимная совместимость</h3>
           <p>Желания, опыт, предпочтения и границы. Отдельное согласие, приватность каждого ответа.</p>
           <div class="test-choice-meta">90 вопросов · только добровольно</div>
+          <button class="btn test-choice-action" id="choose-intimacy">Выбрать тест 18+ <span>→</span></button>
         </article>
       </div>
       <p class="test-picker-note">Оба теста проходят отдельно по личным ссылкам. Второй модуль необязателен и доступен только совершеннолетним.</p>
@@ -151,12 +153,14 @@ function renderHome() {
     <p class="fine center" style="max-width:660px;margin:20px auto 0">Это не проверка на любовь и не психологический диагноз. Здесь нет правильных ответов или рейтинга пары — только ваши собственные ответы и то, где ваши взгляды совпадают или расходятся.</p>
   `;
   document.getElementById('create-room').addEventListener('click', createRoom);
+  document.getElementById('choose-relationship').addEventListener('click', createRoom);
+  document.getElementById('choose-intimacy').addEventListener('click', createRoom);
 }
 
 async function createRoom(event) {
   const button = event.currentTarget;
-  button.disabled = true;
-  button.textContent = 'Создаём пространство…';
+  const triggers = [...document.querySelectorAll('#create-room, #choose-relationship, #choose-intimacy')];
+  triggers.forEach((item) => { item.disabled = true; item.dataset.originalText = item.innerHTML; item.textContent = 'Создаём пространство…'; });
   try {
     const data = await api('/api/rooms', { method: 'POST', body: '{}' });
     const slot = document.getElementById('create-result-slot');
@@ -176,11 +180,10 @@ async function createRoom(event) {
       try { await navigator.clipboard.writeText(copyButton.dataset.copy); toast('Ссылка скопирована', 'success'); }
       catch (_) { toast('Не удалось скопировать автоматически. Нажми и удерживай ссылку, чтобы скопировать её вручную.'); }
     }));
-    button.textContent = 'Пространство создано';
+    triggers.forEach((item) => { item.disabled = true; item.textContent = item.id === 'choose-intimacy' ? 'Ссылки 18+ готовы' : 'Пространство создано'; });
     slot.scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (error) {
-    button.disabled = false;
-    button.textContent = 'Создать наше пространство ↗';
+    triggers.forEach((item) => { item.disabled = false; item.innerHTML = item.dataset.originalText || item.innerHTML; });
     toast(error.message);
   }
 }
