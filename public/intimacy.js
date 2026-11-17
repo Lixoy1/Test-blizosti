@@ -141,11 +141,19 @@
     if(!data.partnerCompleted)return '<section class="panel waiting-card report-section"><div class="waiting-heart">♥</div><h2>Ждём второй взгляд</h2><p>Твой личный отчёт готов. Совместное сравнение появится после завершения анкеты вторым участником.</p><button class="btn btn-secondary" id="intimacy-refresh">Проверить второй отчёт</button></section>';
     const rows=data.comparison.rows;
     const pairs=data.comparison.oralPairs||[];
-    if(!rows.length&&!pairs.length)return '<section class="panel waiting-card"><h2>Пока нет общих ответов для сравнения</h2><p>Вы можете пропускать вопросы и оставлять ответы приватными. Сравниваются только ответы, которыми оба решили поделиться.</p></section>';
-    const pairHtml=pairs.map((p)=>{
-      const side=(x,role)=>'<div><b>'+esc(x.participant)+' · '+role+'</b><p>'+esc(x.prompt)+'</p><p><b>Опыт:</b> '+esc(x.experience)+'<br><b>Желание:</b> '+esc(x.desire)+'<br><b>Комфорт:</b> '+x.comfort+' из 5</p>'+(x.note?'<p><b>Пояснение:</b><br>'+safe(x.note)+'</p>':'')+'</div>';
-      return '<article class="intimacy-report-card"><h4>'+esc(p.title)+'</h4><div class="intimacy-answer-pair">'+side(p.receiver,'получает')+side(p.giver,'делает')+'</div><div class="report-note">'+(p.desireCategoriesMatch?'Вы выбрали одинаковую категорию желания.':'Вы выбрали разные категории желания.')+' Разница самооценки комфорта: '+p.comfortGap+' из 5. Это повод уточнить предпочтения, а не оценка совместимости.</div></article>';
+    const anal=data.comparison.analComparison||{rows:[],penetration:null};
+    if(!rows.length&&!pairs.length&&!anal.rows.length&&!anal.penetration)return '<section class="panel waiting-card"><h2>Пока нет общих ответов для сравнения</h2><p>Вы можете пропускать вопросы и оставлять ответы приватными. Сравниваются только ответы, которыми оба решили поделиться.</p></section>';
+    const oralHtml=pairs.map((p)=>{
+      const side=(x,role)=>'<div><b>'+esc(x.participant)+' · '+role+'</b><p>'+esc(x.prompt)+'</p><p><b>Опыт:</b> '+esc(x.experience)+'<br><b>Желание:</b> '+esc(x.desire)+'<br><b>Комфорт:</b> '+x.comfort+' из 5</p>'+(x.note?'<p><b>Пояснение:</b><br>'+safe(x.note)+'</p>':'');
+      const completion=p.completion && (p.completion.vasiliy||p.completion.polina) ? '<p><b>Завершение во рту:</b><br>'+(p.completion.vasiliy?'Василий — '+esc(p.completion.vasiliy.desire)+'; комфорт '+p.completion.vasiliy.comfort+'/5. ':'')+(p.completion.polina?'Полина — '+esc(p.completion.polina.desire)+'; комфорт '+p.completion.polina.comfort+'/5.':'')+'</p>' : '';
+      const pleasure=p.pleasure && (p.pleasure.vasiliy!==null||p.pleasure.polina!==null) ? '<p><b>Оргазм от минета / доведение партнёра:</b><br>'+(p.pleasure.vasiliy!==null?'Василий — '+p.pleasure.vasiliy+'/5. ':'')+(p.pleasure.polina!==null?'Полина — '+p.pleasure.polina+'/5.':'')+'</p>' : '';
+      return '<article class="intimacy-report-card"><h4>'+esc(p.title)+'</h4><div class="intimacy-answer-pair">'+side(p.receiver,'получает')+'</div><div class="intimacy-answer-pair" style="margin-top:8px">'+side(p.giver,'делает')+'</div>'+completion+pleasure+'<div class="report-note">'+(p.desireCategoriesMatch?'Вы выбрали одинаковую категорию желания.':'Вы выбрали разные категории желания.')+' Разница самооценки комфорта: '+p.comfortGap+' из 5. Это повод уточнить предпочтения, а не оценка совместимости.</div></article>';
     }).join("");
+    const analHtml=anal.rows.map((p)=>{
+      const format=(x)=>'<b>Опыт:</b> '+esc(x.experience)+'<br><b>Желание:</b> '+esc(x.desire)+'<br><b>Комфорт:</b> '+x.comfort+'/5';
+      return '<article class="intimacy-report-card"><h4>'+esc(p.title)+'</h4><div class="intimacy-answer-pair"><div><b>Василий</b>'+format(p.a)+'</div><div><b>Полина</b>'+format(p.b)+'</div></div><span class="match-tag">'+(p.same?'Похожие ответы':'Есть различия')+'</span></article>';
+    }).join("");
+    const penetrationHtml=anal.penetration?'<article class="intimacy-report-card"><h4>'+esc(anal.penetration.title)+'</h4><div class="intimacy-answer-pair"><div><b>Василий · принимающая сторона</b>'+anal.penetration.a+'/5</div><div><b>Полина · активная сторона</b>'+anal.penetration.b+'/5</div></div><p class="fine">Разница ответов: '+anal.penetration.gap+' из 5.</p></article>':'';
     const rowsHtml=rows.map((r)=>{
       const title=r.textA===r.textB?r.textA:"Вопросы: Василий — "+r.textA+" · Полина — "+r.textB;
       let extra="";
@@ -156,7 +164,7 @@
       const b=typeof r.b==="object"?esc(r.b.experience+"; "+r.b.desire+"; комфорт "+r.b.comfort+"/5"):esc(r.b);
       return '<article class="intimacy-report-card"><h4>'+esc(title)+'</h4><span class="match-tag">'+badge+'</span><div class="intimacy-answer-pair"><div><b>Василий</b>'+a+'</div><div><b>Полина</b>'+b+'</div></div>'+extra+'</article>';
     }).join("");
-    return '<section class="report-section"><h2 class="intimacy-report-head">Ваши ответы рядом</h2><p class="report-subtitle">Показаны только вопросы, на которые оба ответили и разрешили общий просмотр. Для оральных ласк отдельно сопоставлены роли: кто получает и кто выполняет действие.</p><div class="intimacy-stat"><span>Общих ответов: '+data.comparison.sharedCount+'</span><span>Близких оценок: '+data.comparison.closeScale+'</span><span>Различий по шкалам: '+data.comparison.differentScale+'</span></div>'+(pairHtml?'<h3 class="analysis-subheading">Оральные предпочтения: один процесс с двух сторон</h3>'+pairHtml:"")+rowsHtml+'</section>';
+    return '<section class="report-section"><h2 class="intimacy-report-head">Ваши ответы рядом</h2><p class="report-subtitle">Показаны только вопросы, на которые оба ответили и разрешили общий просмотр. Для действий с разными ролями ответы сопоставлены по тому, кто получает и кто выполняет действие.</p><div class="intimacy-stat"><span>Общих ответов: '+data.comparison.sharedCount+'</span><span>Близких оценок: '+data.comparison.closeScale+'</span><span>Различий по шкалам: '+data.comparison.differentScale+'</span></div>'+(oralHtml?'<h3 class="analysis-subheading">Оральные предпочтения: один процесс с двух сторон</h3>'+oralHtml:"")+(analHtml||penetrationHtml?'<h3 class="analysis-subheading">Анальные предпочтения: принимающая и активная роль</h3>'+analHtml+penetrationHtml:"")+rowsHtml+'</section>';
   }
   async function report() {
     try{
