@@ -83,3 +83,13 @@ CREATE TABLE IF NOT EXISTS intimacy_submissions (
 
 CREATE INDEX IF NOT EXISTS idx_intimacy_submissions_room
   ON intimacy_submissions(room_id, role);
+
+-- Explicit recovery link for two already-completed intimacy participants.
+-- The link is separate from room membership and never moves or rewrites answers.
+CREATE TABLE IF NOT EXISTS intimacy_pair_links (
+  id BIGSERIAL PRIMARY KEY,
+  participant_a_id BIGINT NOT NULL UNIQUE REFERENCES participants(id) ON DELETE CASCADE,
+  participant_b_id BIGINT NOT NULL UNIQUE REFERENCES participants(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (participant_a_id <> participant_b_id)
+);
