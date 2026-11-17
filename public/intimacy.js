@@ -68,7 +68,7 @@
   }
   async function flush() {
     clearTimeout(state.timer); state.timer = null; await state.pending;
-    if (state.session && state.session.consented && !state.session.completed) await req(API + "/draft",{method:"PUT",body:JSON.stringify({answers:savable()})});
+    if (state.session && state.session.consented && !state.session.completed) await req(API + "/draft",{method:"PUT",body:JSON.stringify({answers:draftable()})});
   }
   function styles() {
     if (document.getElementById("intimacy-styles")) return;
