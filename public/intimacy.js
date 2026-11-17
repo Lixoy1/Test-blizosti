@@ -126,9 +126,23 @@
   function comparisonHtml(data) {
     if(!data.partnerCompleted)return '<section class="panel waiting-card report-section"><div class="waiting-heart">♥</div><h2>Ждём второй взгляд</h2><p>Твой личный отчёт готов. Совместное сравнение появится после завершения анкеты вторым участником.</p><button class="btn btn-secondary" id="intimacy-refresh">Проверить второй отчёт</button></section>';
     const rows=data.comparison.rows;
-    if(!rows.length)return '<section class="panel waiting-card"><h2>Пока нет общих ответов для сравнения</h2><p>Вы можете пропускать вопросы и оставлять ответы приватными. Сравниваются только ответы, которыми оба решили поделиться.</p></section>';
-    return '<section class="report-section"><h2 class="intimacy-report-head">Ваши ответы рядом</h2><p class="report-subtitle">Показаны только вопросы, на которые оба ответили и разрешили общий просмотр.</p><div class="intimacy-stat"><span>Общих ответов: '+data.comparison.sharedCount+'</span><span>Близких оценок: '+data.comparison.closeScale+'</span><span>Различий по шкалам: '+data.comparison.differentScale+'</span></div>'+
-      rows.map((r)=>{const title=r.textA===r.textB?r.textA:"Вопросы: Василий — "+r.textA+" · Полина — "+r.textB;let extra="";if(r.type==="multi")extra="<p><b>Общие варианты:</b> "+esc((r.shared||[]).join(", ")||"нет")+"<br><b>Только Василий:</b> "+esc((r.onlyA||[]).join(", ")||"нет")+"<br><b>Только Полина:</b> "+esc((r.onlyB||[]).join(", ")||"нет")+"</p>";if(r.type==="practice")extra="<p>"+r.differences.map((d)=>"<b>"+esc(d.label)+":</b> Василий — "+esc(d.a)+"; Полина — "+esc(d.b)).join("<br>")+"</p>";const badge=r.type==="text"?"Оба поделились ответом":r.same?"Совпадение":"Есть различия";const a=typeof r.a==="object"?esc(r.a.experience+"; "+r.a.desire+"; комфорт "+r.a.comfort+"/5"):esc(r.a);const b=typeof r.b==="object"?esc(r.b.experience+"; "+r.b.desire+"; комфорт "+r.b.comfort+"/5"):esc(r.b);return '<article class="intimacy-report-card"><h4>'+esc(title)+'</h4><span class="match-tag">'+badge+'</span><div class="intimacy-answer-pair"><div><b>Василий</b>'+a+'</div><div><b>Полина</b>'+b+'</div></div>'+extra+'</article>';}).join("")+"</section>";
+    const pairs=data.comparison.oralPairs||[];
+    if(!rows.length&&!pairs.length)return '<section class="panel waiting-card"><h2>Пока нет общих ответов для сравнения</h2><p>Вы можете пропускать вопросы и оставлять ответы приватными. Сравниваются только ответы, которыми оба решили поделиться.</p></section>';
+    const pairHtml=pairs.map((p)=>{
+      const side=(x,role)=>'<div><b>'+esc(x.participant)+' · '+role+'</b><p>'+esc(x.prompt)+'</p><p><b>Опыт:</b> '+esc(x.experience)+'<br><b>Желание:</b> '+esc(x.desire)+'<br><b>Комфорт:</b> '+x.comfort+' из 5</p>'+(x.note?'<p><b>Пояснение:</b><br>'+safe(x.note)+'</p>':'')+'</div>';
+      return '<article class="intimacy-report-card"><h4>'+esc(p.title)+'</h4><div class="intimacy-answer-pair">'+side(p.receiver,'получает')+side(p.giver,'делает')+'</div><div class="report-note">'+(p.desireCategoriesMatch?'Вы выбрали одинаковую категорию желания.':'Вы выбрали разные категории желания.')+' Разница самооценки комфорта: '+p.comfortGap+' из 5. Это повод уточнить предпочтения, а не оценка совместимости.</div></article>';
+    }).join("");
+    const rowsHtml=rows.map((r)=>{
+      const title=r.textA===r.textB?r.textA:"Вопросы: Василий — "+r.textA+" · Полина — "+r.textB;
+      let extra="";
+      if(r.type==="multi")extra="<p><b>Общие варианты:</b> "+esc((r.shared||[]).join(", ")||"нет")+"<br><b>Только Василий:</b> "+esc((r.onlyA||[]).join(", ")||"нет")+"<br><b>Только Полина:</b> "+esc((r.onlyB||[]).join(", ")||"нет")+"</p>";
+      if(r.type==="practice")extra="<p>"+r.differences.map((d)=>"<b>"+esc(d.label)+":</b> Василий — "+esc(d.a)+"; Полина — "+esc(d.b)).join("<br>")+"</p>";
+      const badge=r.type==="text"?"Оба поделились ответом":r.same?"Совпадение":"Есть различия";
+      const a=typeof r.a==="object"?esc(r.a.experience+"; "+r.a.desire+"; комфорт "+r.a.comfort+"/5"):esc(r.a);
+      const b=typeof r.b==="object"?esc(r.b.experience+"; "+r.b.desire+"; комфорт "+r.b.comfort+"/5"):esc(r.b);
+      return '<article class="intimacy-report-card"><h4>'+esc(title)+'</h4><span class="match-tag">'+badge+'</span><div class="intimacy-answer-pair"><div><b>Василий</b>'+a+'</div><div><b>Полина</b>'+b+'</div></div>'+extra+'</article>';
+    }).join("");
+    return '<section class="report-section"><h2 class="intimacy-report-head">Ваши ответы рядом</h2><p class="report-subtitle">Показаны только вопросы, на которые оба ответили и разрешили общий просмотр. Для оральных ласк отдельно сопоставлены роли: кто получает и кто выполняет действие.</p><div class="intimacy-stat"><span>Общих ответов: '+data.comparison.sharedCount+'</span><span>Близких оценок: '+data.comparison.closeScale+'</span><span>Различий по шкалам: '+data.comparison.differentScale+'</span></div>'+(pairHtml?'<h3 class="analysis-subheading">Оральные предпочтения: один процесс с двух сторон</h3>'+pairHtml:"")+rowsHtml+'</section>';
   }
   async function report() {
     try{
