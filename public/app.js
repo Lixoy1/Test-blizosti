@@ -786,7 +786,7 @@ function renderReport(report) {
         <div class="report-note">У каждого участника есть личная ссылка. Не публикуйте её: она открывает сохранённые ответы и отчёты. Оценки отражают самоописание и самооценку; они не доказывают любовь, не предсказывают будущее и не заменяют разговор.</div>
       </div>`;
   }
-  document.getElementById('open-intimacy')?.addEventListener('click', () => { window.location.href = window.location.pathname.replace(/\\/$/, '') + '/intimacy'; });
+  document.getElementById('open-intimacy')?.addEventListener('click', () => { window.location.href = window.location.pathname.replace(/\/$/, '') + '/intimacy'; });
   document.getElementById('refresh-report')?.addEventListener('click', loadReport);
   document.getElementById('print-report')?.addEventListener('click', () => window.print());
   document.getElementById('download-report')?.addEventListener('click', () => downloadReport(report));
