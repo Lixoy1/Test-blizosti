@@ -83,8 +83,8 @@ async function main() {
     assert(afterConsentA.data.consented && afterConsentB.data.consented, 'both independent consent flags must persist');
     mark('separate consent persistence');
 
-    const draftA = { '1': { value: 4, visibility: 'shared' }, '58': { value: 'A private draft test', visibility: 'private' } };
-    const draftB = { '1': { value: 2, visibility: 'shared' } };
+    const draftA = { '1': { value: 'a', visibility: 'shared' }, '58': { value: 'A private draft test', visibility: 'private' } };
+    const draftB = { '1': { value: 'b', visibility: 'shared' } };
     await request('/api/intimacy/' + tokenA + '/draft', { method: 'PUT', body: JSON.stringify({ answers: draftA }) });
     const draftIsolation = await request('/api/intimacy/' + tokenB);
     assert(Object.keys(draftIsolation.data.draftAnswers || {}).length === 0, 'partner must not receive another participant draft');
@@ -94,7 +94,7 @@ async function main() {
       request('/api/intimacy/' + tokenB),
     ]);
     assert(draftReloadA.data.draftAnswers['58']?.value === 'A private draft test', 'participant A draft must survive reload');
-    assert(draftReloadB.data.draftAnswers['1']?.value === 2, 'participant B draft must survive reload');
+    assert(draftReloadB.data.draftAnswers['1']?.value === 'b', 'participant B draft must survive reload');
     assert(!draftReloadB.data.draftAnswers['58'], 'participant B must not see participant A draft content');
     mark('draft autosave, reload recovery, and participant isolation');
 
