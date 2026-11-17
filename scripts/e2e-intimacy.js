@@ -1,7 +1,7 @@
 'use strict';
 
 const BASE_URL = (process.env.BASE_URL || 'https://mezhdu-nami-bj4n.onrender.com').replace(/\/+$/, '');
-const EXPECTED_RELEASE = '2026-11-17-e2e-v1';
+const EXPECTED_RELEASE = '2026-11-17-e2e-v2';
 
 async function request(path, options = {}, expectedStatus = 200) {
   const response = await fetch(BASE_URL + path, {
