@@ -36,14 +36,14 @@ jobs:
       - name: Wait for Render deployment
         env:
           BASE_URL: https://mezhdu-nami-bj4n.onrender.com
-          EXPECTED_RELEASE: 2026-11-17-e2e-v1
+          EXPECTED_RELEASE: 2026-11-17-e2e-v2
         run: |
           set -euo pipefail
           ready=0
           for attempt in $(seq 1 36); do
             health="$(curl -fsS "$BASE_URL/api/health" || true)"
             questionnaire="$(curl -fsS "$BASE_URL/intimacy-questions.json?e2e=$attempt" || true)"
-            if printf '%s' "$health" | grep -q '"database":"connected"' && printf '%s' "$questionnaire" | grep -q "\"e2eRelease\":\"$EXPECTED_RELEASE\""; then
+            if printf '%s' "$health" | grep -q '"database":"connected"' && printf '%s' "$questionnaire" | grep -Eq "\"e2eRelease\"[[:space:]]*:[[:space:]]*\"$EXPECTED_RELEASE\""; then
               echo "Render is serving the expected release and the database is connected."
               ready=1
               break
