@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS participants (
 
 ALTER TABLE participants ADD COLUMN IF NOT EXISTS current_version_no INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE participants ADD COLUMN IF NOT EXISTS consented_at TIMESTAMPTZ;
+ALTER TABLE participants ADD COLUMN IF NOT EXISTS intimacy_consented_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS submissions (
   id BIGSERIAL PRIMARY KEY,
@@ -58,3 +59,27 @@ CREATE INDEX IF NOT EXISTS idx_participants_token_hash ON participants(token_has
 CREATE INDEX IF NOT EXISTS idx_submissions_room_id ON submissions(room_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_room_role_version ON submissions(room_id, role, version_no DESC);
 CREATE INDEX IF NOT EXISTS idx_answer_history_room_role_version ON answer_history(room_id, role, version_no, changed_at);
+
+-- The adult intimacy module has an independent consent, draft and submission lifecycle.
+CREATE TABLE IF NOT EXISTS intimacy_drafts (
+  room_id TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('A', 'B')),
+  answers JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (room_id, role),
+  FOREIGN KEY (room_id, role) REFERENCES participants(room_id, role) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS intimacy_submissions (
+  id BIGSERIAL PRIMARY KEY,
+  room_id TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('A', 'B')),
+  answers JSONB NOT NULL,
+  consent BOOLEAN NOT NULL CHECK (consent = TRUE),
+  completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (room_id, role),
+  FOREIGN KEY (room_id, role) REFERENCES participants(room_id, role) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_intimacy_submissions_room
+  ON intimacy_submissions(room_id, role);
