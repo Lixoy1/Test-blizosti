@@ -48,7 +48,8 @@
     if (!state.session || !state.session.consented || state.session.completed) return;
     clearTimeout(state.timer);
     state.timer = setTimeout(() => {
-      state.pending = req(API + "/draft",{method:"PUT",body:JSON.stringify({answers:savable()})}).catch((e) => { console.warn("Intimacy draft save failed",e); toast("Черновик пока не сохранился. Проверь соединение."); });
+      const payload = JSON.stringify({answers:savable()});
+      state.pending = state.pending.catch(() => {}).then(() => req(API + "/draft",{method:"PUT",body:payload})).catch((e) => { console.warn("Intimacy draft save failed",e); toast("Черновик пока не сохранился. Проверь соединение."); });
     },450);
   }
   async function flush() {
@@ -111,13 +112,13 @@
   }
   function answerHtml(q,a) {
     if(!a)return "Нет ответа";if(a.skipped)return "Вопрос пропущен";
-    if(a.visibility==="private")return '<span class="intimacy-private-tag">Только мне</span>';
-    if(q.type==="scale")return a.value+" из 5 · "+esc(state.data.scale.find((o)=>o.value===a.value)?.label||"");
-    if(q.type==="single")return esc(q.options.find((o)=>o.value===a.value)?.label||a.value);
-    if(q.type==="multi")return a.value.map((v)=>esc(q.options.find((o)=>o.value===v)?.label||v)).join(", ");
-    if(q.type==="text")return safe(a.value);
-    if(q.type==="practice"){const f=state.data.practiceFields;return "<b>Опыт:</b> "+esc(f.experience.find((o)=>o.value===a.experience)?.label||"")+"<br><b>Желание:</b> "+esc(f.desire.find((o)=>o.value===a.desire)?.label||"")+"<br><b>Комфорт:</b> "+a.comfort+" из 5";}
-    return "";
+    let value = "";
+    if(q.type==="scale")value = a.value+" из 5 · "+esc(state.data.scale.find((o)=>o.value===a.value)?.label||"");
+    else if(q.type==="single")value = esc(q.options.find((o)=>o.value===a.value)?.label||a.value);
+    else if(q.type==="multi")value = a.value.map((v)=>esc(q.options.find((o)=>o.value===v)?.label||v)).join(", ");
+    else if(q.type==="text")value = safe(a.value);
+    else if(q.type==="practice"){const f=state.data.practiceFields;value = "<b>Опыт:</b> "+esc(f.experience.find((o)=>o.value===a.experience)?.label||"")+"<br><b>Желание:</b> "+esc(f.desire.find((o)=>o.value===a.desire)?.label||"")+"<br><b>Комфорт:</b> "+a.comfort+" из 5";}
+    return value + (a.visibility==="private" ? ' <span class="intimacy-private-tag">Только мне</span>' : "");
   }
   function ownAnswersHtml(answers) {
     return qs().map((q)=>{const a=answers[String(q.id)];if(!a)return "";return '<article class="intimacy-report-card"><h4>'+String(q.id).padStart(2,"0")+". "+esc(prompt(q))+'</h4><div class="answer-review"><p>'+answerHtml(q,a)+'</p></div></article>';}).join("");
