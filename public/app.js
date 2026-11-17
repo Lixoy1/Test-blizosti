@@ -124,6 +124,25 @@ function renderHome() {
       <span class="feature-pill"><b>2</b> личных отчёта</span>
       <span class="feature-pill"><b>1</b> общий взгляд</span>
     </div>
+    <section class="test-picker" aria-label="Выбор теста">
+      <div class="eyebrow">выбери направление</div>
+      <h2>Два теста. Одно пространство.</h2>
+      <div class="test-picker-grid">
+        <article class="test-choice primary-test">
+          <div class="test-choice-top"><span class="test-choice-icon">♡</span><span class="test-choice-tag">ОСНОВНОЙ</span></div>
+          <h3>Отношения и близость</h3>
+          <p>Чувства, доверие, характер, ожидания, готовность к реальным шагам и общему будущему.</p>
+          <div class="test-choice-meta">125 вопросов · личные и общий отчёты</div>
+        </article>
+        <article class="test-choice adult-test">
+          <div class="test-choice-top"><span class="test-choice-icon">18+</span><span class="test-choice-tag">ДОПОЛНИТЕЛЬНЫЙ</span></div>
+          <h3>Интимная совместимость</h3>
+          <p>Желания, опыт, предпочтения и границы. Отдельное согласие, приватность каждого ответа.</p>
+          <div class="test-choice-meta">90 вопросов · только добровольно</div>
+        </article>
+      </div>
+      <p class="test-picker-note">Оба теста проходят отдельно по личным ссылкам. Второй модуль необязателен и доступен только совершеннолетним.</p>
+    </section>
     <section class="panel start-panel">
       <div><h3>У каждого будет свой голос.</h3><p>Создайте закрытое пространство. Получите личную ссылку и отдельную ссылку-приглашение. Ответы откроются для сравнения только после того, как оба участника завершат анкету.</p></div>
       <button class="btn" id="create-room">Создать наше пространство <span>↗</span></button>
@@ -148,6 +167,8 @@ async function createRoom(event) {
         <p class="fine">Сначала открой личную ссылку Василия. Вторую отправь Полине. Ссылки работают как ключи доступа — не публикуй их и не пересылай посторонним.</p>
         <div class="link-row"><div class="link-info"><strong>Твоя личная ссылка · Василий</strong><span>${escapeHtml(data.participantUrl)}</span></div><button class="btn btn-secondary copy-link" data-copy="${escapeHtml(data.participantUrl)}">Скопировать</button></div>
         <div class="link-row"><div class="link-info"><strong>Приглашение · Полина</strong><span>${escapeHtml(data.inviteUrl)}</span></div><button class="btn copy-link" data-copy="${escapeHtml(data.inviteUrl)}">Скопировать ссылку</button></div>
+        <div class="link-row"><div class="link-info"><strong>Твоя ссылка · интимный тест 18+</strong><span>${escapeHtml(data.participantUrl)}/intimacy</span></div><button class="btn btn-secondary copy-link" data-copy="${escapeHtml(data.participantUrl)}/intimacy">Скопировать</button></div>
+        <div class="link-row"><div class="link-info"><strong>Приглашение · интимный тест 18+</strong><span>${escapeHtml(data.inviteUrl)}/intimacy</span></div><button class="btn copy-link" data-copy="${escapeHtml(data.inviteUrl)}/intimacy">Скопировать ссылку</button></div>
         <div class="security-note">Ответы не показываются друг другу во время прохождения. После завершения обеих анкет общий отчёт станет доступен по обеим личным ссылкам. Сохрани обе ссылки.</div>
         <div style="margin-top:17px"><a class="btn" href="${escapeHtml(data.participantUrl)}">Перейти к своей анкете <span>→</span></a></div>
       </section>`;
@@ -189,6 +210,10 @@ function renderIntro() {
     <div class="content-wrap">
       <div class="center" style="margin-bottom:18px"><span class="room-label"><i></i> закрытое пространство · участник ${role}</span></div>
       <header class="page-head"><div class="eyebrow">твой взгляд на отношения</div><h1>Привет, ${escapeHtml(sessionInfo.displayName)}.</h1><p>Здесь не нужно угадывать, что хочет услышать другой человек. Важно только то, что действительно думаешь и чувствуешь ты.</p></header>
+      <div class="module-switch">
+        <div><strong>Дополнительный тест 18+</strong><span>Интимные предпочтения и личные границы — отдельная анкета, проходить её необязательно.</span></div>
+        <a class="btn btn-secondary" href="/p/${encodeURIComponent(sessionToken)}/intimacy">Открыть 18+ <span>→</span></a>
+      </div>
       <section class="panel intro-card">
         <h2>Перед началом — несколько важных вещей</h2>
         <p>Анкета состоит из 125 обязательных вопросов: 60 о вашей связи, 50 о характере по пятифакторной модели Big Five и 15 о близости, страсти и обязательствах по модели треугольной любви. Прохождение разделено на смысловые части.</p>

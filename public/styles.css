@@ -309,3 +309,25 @@ details[open] summary:after { content: "−"; }
   .attempt-row { grid-template-columns: 1fr; }
   .attempt-row span { text-align: left; }
 }
+
+/* Test selector and module navigation */
+.test-picker{margin:28px 0 18px;padding:22px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.025)}
+.test-picker>h2{font-family:var(--serif);font-size:clamp(23px,4vw,31px);font-weight:500;margin:7px 0 16px}
+.test-picker-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.test-choice{border:1px solid var(--line);border-radius:16px;padding:17px;background:rgba(255,255,255,.025);min-width:0}
+.test-choice.primary-test{border-color:rgba(217,185,120,.3)}
+.test-choice.adult-test{border-color:rgba(217,155,180,.27)}
+.test-choice-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.test-choice-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:rgba(217,185,120,.1);color:var(--gold-bright);font-size:17px}
+.adult-test .test-choice-icon{background:rgba(217,155,180,.1);color:#e6aebe;font-size:11px;font-weight:700}
+.test-choice-tag{font-size:8px;letter-spacing:.14em;color:var(--muted-2)}
+.test-choice h3{font-size:16px;margin:13px 0 7px}
+.test-choice p{font-size:11px;line-height:1.65;color:var(--muted);margin:0;min-height:55px}
+.test-choice-meta{font-size:9px;color:var(--gold-bright);margin-top:13px}
+.test-picker-note{font-size:10px;line-height:1.6;color:var(--muted-2);margin:14px 0 0}
+.module-switch{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 14px;padding:15px;border:1px solid rgba(217,155,180,.28);border-radius:15px;background:rgba(217,155,180,.045)}
+.module-switch>div{display:grid;gap:4px}
+.module-switch strong{font-size:12px;color:#e6aebe}
+.module-switch span{font-size:10px;line-height:1.5;color:var(--muted)}
+.module-switch .btn{white-space:nowrap;flex-shrink:0}
+@media(max-width:700px){.test-picker{padding:16px}.test-picker-grid{grid-template-columns:1fr}.test-choice p{min-height:0}.module-switch{align-items:flex-start;flex-direction:column}.module-switch .btn{width:100%}}
