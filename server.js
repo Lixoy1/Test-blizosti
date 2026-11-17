@@ -313,14 +313,56 @@ function compareOralActivities(answersA, answersB) {
       },
       desireCategoriesMatch: receiver.desire === giver.desire,
       comfortGap: Math.abs(receiver.comfort - giver.comfort),
+      completion: {
+        vasiliy: answersA['17'] && answersA['17'].skipped !== true && answersA['17'].visibility !== 'private' ? {
+          experience: fields.experience.find((option) => option.value === answersA['17'].experience)?.label || answersA['17'].experience,
+          desire: fields.desire.find((option) => option.value === answersA['17'].desire)?.label || answersA['17'].desire,
+          comfort: answersA['17'].comfort,
+        } : null,
+        polina: answersB['17'] && answersB['17'].skipped !== true && answersB['17'].visibility !== 'private' ? {
+          experience: fields.experience.find((option) => option.value === answersB['17'].experience)?.label || answersB['17'].experience,
+          desire: fields.desire.find((option) => option.value === answersB['17'].desire)?.label || answersB['17'].desire,
+          comfort: answersB['17'].comfort,
+        } : null,
+      },
+      pleasure: {
+        vasiliy: isSharedIntimacyAnswer(answersA['18']) ? answersA['18'].value : null,
+        polina: isSharedIntimacyAnswer(answersB['18']) ? answersB['18'].value : null,
+      },
     };
   }).filter(Boolean);
+}
+
+function compareAnalActivities(answersA, answersB) {
+  const pairs = [
+    { id: 'anal-receptive', title: 'Анальная стимуляция: принимающая роль', a: 31, b: 32 },
+    { id: 'anal-active', title: 'Анальная стимуляция: активная роль', a: 32, b: 31 },
+  ];
+  const rows = pairs.map((pair) => {
+    const a = answersA[String(pair.a)];
+    const b = answersB[String(pair.b)];
+    if (!isSharedIntimacyAnswer(a) || !isSharedIntimacyAnswer(b)) return null;
+    const fields = INTIMACY_QUESTIONNAIRE.practiceFields;
+    const label = (answer) => ({
+      experience: fields.experience.find((option) => option.value === answer.experience)?.label || answer.experience,
+      desire: fields.desire.find((option) => option.value === answer.desire)?.label || answer.desire,
+      comfort: answer.comfort,
+    });
+    return { id: pair.id, title: pair.title, a: label(a), b: label(b), same: a.experience === b.experience && a.desire === b.desire && a.comfort === b.comfort };
+  }).filter(Boolean);
+  const penetrationA = answersA['33'];
+  const penetrationB = answersB['33'];
+  let penetration = null;
+  if (isSharedIntimacyAnswer(penetrationA) && isSharedIntimacyAnswer(penetrationB)) {
+    penetration = { title: 'Анальное проникновение: желания принимающей и активной стороны', a: penetrationA.value, b: penetrationB.value, gap: Math.abs(penetrationA.value - penetrationB.value) };
+  }
+  return { rows, penetration };
 }
 
 function compareIntimacyAnswers(answersA, answersB) {
   const rows = [];
   for (const question of INTIMACY_QUESTIONS) {
-    if ([11, 12, 14, 15].includes(question.id)) continue;
+    if ([11, 12, 14, 15, 17, 18, 31, 32, 33].includes(question.id)) continue;
     const a = answersA[String(question.id)];
     const b = answersB[String(question.id)];
     if (!isSharedIntimacyAnswer(a) || !isSharedIntimacyAnswer(b)) continue;
@@ -357,6 +399,7 @@ function compareIntimacyAnswers(answersA, answersB) {
   return {
     rows,
     oralPairs: compareOralActivities(answersA, answersB),
+    analComparison: compareAnalActivities(answersA, answersB),
     sharedCount: rows.length,
     closeScale: rows.filter((row) => row.type === 'scale' && row.gap <= 1).length,
     differentScale: rows.filter((row) => row.type === 'scale' && row.gap > 1).length,
