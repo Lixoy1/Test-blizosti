@@ -77,7 +77,7 @@ const toast = (message, kind = 'error') => {
 
 async function init() {
   try {
-    const intimacyMatch = window.location.pathname.match(/^\\/p\\/([A-Za-z0-9_-]{32,100})\\/intimacy\\/?$/);
+    const intimacyMatch = window.location.pathname.match(/^\/p\/([A-Za-z0-9_-]{32,100})\/intimacy\/?$/);
     if (intimacyMatch) {
       await import('/intimacy.js?v=20261117-1');
       return;
@@ -86,7 +86,7 @@ async function init() {
       if (!r.ok) throw new Error('Не удалось загрузить вопросы.');
       return r.json();
     });
-    const match = window.location.pathname.match(/^\\/p\\/([A-Za-z0-9_-]{32,100})\\/?$/);
+    const match = window.location.pathname.match(/^\/p\/([A-Za-z0-9_-]{32,100})\/?$/);
     if (match) {
       sessionToken = match[1];
       await loadParticipant();
