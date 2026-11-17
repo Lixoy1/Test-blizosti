@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js && node --check public/intimacy.js && node scripts/check-questionnaire.js"
+    "check": "node --check server.js && node --check public/app.js && node --check public/intimacy.js && node --check scripts/e2e-intimacy.js && node scripts/check-questionnaire.js",
+    "test:e2e": "node scripts/e2e-intimacy.js"
   },
   "engines": {
     "node": ">=20"

@@ -20,3 +20,39 @@ jobs:
         run: npm install
       - name: Check JavaScript syntax and questionnaire structure
         run: npm run check
+
+  production-e2e:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Wait for Render deployment
+        env:
+          BASE_URL: https://mezhdu-nami-bj4n.onrender.com
+          EXPECTED_RELEASE: 2026-11-17-e2e-v1
+        run: |
+          set -euo pipefail
+          ready=0
+          for attempt in $(seq 1 36); do
+            health="$(curl -fsS "$BASE_URL/api/health" || true)"
+            questionnaire="$(curl -fsS "$BASE_URL/intimacy-questions.json?e2e=$attempt" || true)"
+            if printf '%s' "$health" | grep -q '"database":"connected"' && printf '%s' "$questionnaire" | grep -q "\"e2eRelease\":\"$EXPECTED_RELEASE\""; then
+              echo "Render is serving the expected release and the database is connected."
+              ready=1
+              break
+            fi
+            echo "Waiting for Render deployment ($attempt/36)..."
+            sleep 10
+          done
+          test "$ready" -eq 1
+      - name: Run production intimacy E2E
+        env:
+          BASE_URL: https://mezhdu-nami-bj4n.onrender.com
+        run: npm run test:e2e
