@@ -6,9 +6,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js && node scripts/check-questionnaire.js"
+    "check": "node --check server.js && node --check public/app.js && node --check public/intimacy.js && node scripts/check-questionnaire.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
