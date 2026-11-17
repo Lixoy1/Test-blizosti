@@ -77,11 +77,16 @@ const toast = (message, kind = 'error') => {
 
 async function init() {
   try {
+    const intimacyMatch = window.location.pathname.match(/^\\/p\\/([A-Za-z0-9_-]{32,100})\\/intimacy\\/?$/);
+    if (intimacyMatch) {
+      await import('/intimacy.js?v=20261117-1');
+      return;
+    }
     questionSet = await fetch('/questions.json', { cache: 'no-store' }).then((r) => {
       if (!r.ok) throw new Error('Не удалось загрузить вопросы.');
       return r.json();
     });
-    const match = window.location.pathname.match(/^\/p\/([A-Za-z0-9_-]{32,100})\/?$/);
+    const match = window.location.pathname.match(/^\\/p\\/([A-Za-z0-9_-]{32,100})\\/?$/);
     if (match) {
       sessionToken = match[1];
       await loadParticipant();
@@ -733,6 +738,15 @@ function downloadReport(report) {
   URL.revokeObjectURL(url);
 }
 
+function renderIntimacyCard() {
+  return `
+    <section class="panel start-panel report-section">
+      <div><div class="eyebrow">второй модуль · 18+</div><h3>Интимная совместимость</h3>
+      <p>Отдельная анкета о желаниях, предпочтениях, фантазиях и границах. Приватные ответы можно оставить только в личном отчёте.</p></div>
+      <button class="btn" id="open-intimacy">Открыть второй тест <span>→</span></button>
+    </section>`;
+}
+
 function renderReport(report) {
   const own = report.ownReport;
   const profileSections = renderMetricSections(own.profile);
@@ -750,6 +764,7 @@ function renderReport(report) {
         <div class="page-head"><div class="eyebrow">твой взгляд сохранён</div><h1>Твоя история <em style="color:var(--gold-bright)">зафиксирована.</em></h1><p>Ты ответил(а) на все 125 вопросов. Личный профиль уже сформирован. Общая картина появится, когда второй участник завершит свою анкету.</p><span class="room-label" style="margin-top:15px"><i></i> ${escapeHtml(own.participant)} · версия ${own.versionNo} · ${escapeHtml(completed)}</span></div>
         ${analysisSummary}
         ${profileSections}
+        ${renderIntimacyCard()}
         <section class="panel waiting-card report-section"><div class="waiting-heart">♥</div><h2>Теперь очередь второго взгляда</h2><p>Общий сравнительный отчёт откроется автоматически после завершения второй анкеты. Вернись по своей ссылке позже — твоя завершённая версия останется в истории.</p><button class="btn btn-secondary" id="refresh-report">Проверить вторую анкету</button></section>
         <details class="report-section"><summary>Все мои ответы · 125 вопросов</summary><div class="details-body report-answers">${renderPersonalAnswers(own.answers)}</div></details>
         <div class="report-actions"><button class="btn" id="print-report">Сохранить личный отчёт в PDF</button><button class="btn btn-secondary" id="download-report">Экспортировать ответы JSON</button></div>
@@ -763,6 +778,7 @@ function renderReport(report) {
         <div class="page-head"><div class="eyebrow">оба взгляда собраны</div><h1>Теперь видно <em style="color:var(--gold-bright)">между вами.</em></h1><p>Две самостоятельные анкеты завершены. Ниже — личный портрет, характер, влечение, совпадения и темы, в которых ваши взгляды расходятся.</p><span class="room-label" style="margin-top:15px"><i></i> ${escapeHtml(own.participant)} · версия ${own.versionNo} &nbsp; + &nbsp; ${escapeHtml(partner.participant)} · версия ${partner.versionNo}</span></div>
         ${analysisSummary}
         ${profileSections}
+        ${renderIntimacyCard()}
         ${renderComparison(report)}
         <details class="report-section"><summary>Все мои ответы · 125 вопросов</summary><div class="details-body report-answers">${renderPersonalAnswers(own.answers)}</div></details>
         ${commonActions}
@@ -770,6 +786,7 @@ function renderReport(report) {
         <div class="report-note">У каждого участника есть личная ссылка. Не публикуйте её: она открывает сохранённые ответы и отчёты. Оценки отражают самоописание и самооценку; они не доказывают любовь, не предсказывают будущее и не заменяют разговор.</div>
       </div>`;
   }
+  document.getElementById('open-intimacy')?.addEventListener('click', () => { window.location.href = window.location.pathname.replace(/\\/$/, '') + '/intimacy'; });
   document.getElementById('refresh-report')?.addEventListener('click', loadReport);
   document.getElementById('print-report')?.addEventListener('click', () => window.print());
   document.getElementById('download-report')?.addEventListener('click', () => downloadReport(report));
