@@ -207,24 +207,32 @@ function personalityCompatibility(profileA, profileB) {
 }
 
 
-function validateIntimacyAnswer(question, answer) {
+function validateIntimacyAnswer(question, answer, allowIncomplete = false) {
   if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return false;
   if (answer.skipped === true) return Object.keys(answer).length === 1;
   if (!['shared', 'private'].includes(answer.visibility)) return false;
   if (question.type === 'scale') return Number.isInteger(answer.value) && answer.value >= 1 && answer.value <= 5;
   if (question.type === 'single') return typeof answer.value === 'string' && question.options.some((option) => option.value === answer.value);
   if (question.type === 'multi') {
-    if (!Array.isArray(answer.value) || answer.value.length < 1) return false;
+    if (!Array.isArray(answer.value) || (!allowIncomplete && answer.value.length < 1)) return false;
     if (new Set(answer.value).size !== answer.value.length) return false;
     if (question.maxSelections && answer.value.length > question.maxSelections) return false;
     return answer.value.every((value) => question.options.some((option) => option.value === value));
   }
-  if (question.type === 'text') return typeof answer.value === 'string' && answer.value.trim().length >= (question.minLength || 5) && answer.value.length <= 3000;
+  if (question.type === 'text') {
+    return typeof answer.value === 'string' && answer.value.length <= 3000
+      && (allowIncomplete || answer.value.trim().length >= (question.minLength || 5));
+  }
   if (question.type === 'practice') {
     const fields = INTIMACY_QUESTIONNAIRE.practiceFields;
-    return typeof answer.experience === 'string' && fields.experience.some((option) => option.value === answer.experience)
-      && typeof answer.desire === 'string' && fields.desire.some((option) => option.value === answer.desire)
-      && Number.isInteger(answer.comfort) && answer.comfort >= 1 && answer.comfort <= 5;
+    const experienceValid = answer.experience === undefined || fields.experience.some((option) => option.value === answer.experience);
+    const desireValid = answer.desire === undefined || fields.desire.some((option) => option.value === answer.desire);
+    const comfortValid = answer.comfort === undefined || (Number.isInteger(answer.comfort) && answer.comfort >= 1 && answer.comfort <= 5);
+    if (allowIncomplete) return (answer.experience !== undefined || answer.desire !== undefined || answer.comfort !== undefined)
+      && experienceValid && desireValid && comfortValid;
+    return typeof answer.experience === 'string' && experienceValid
+      && typeof answer.desire === 'string' && desireValid
+      && Number.isInteger(answer.comfort) && comfortValid;
   }
   return false;
 }
@@ -241,7 +249,7 @@ function validateIntimacyAnswers(answers, requireAll = false) {
   for (const [id, answer] of Object.entries(answers)) {
     const question = INTIMACY_QUESTION_BY_ID.get(id);
     if (!question) return 'В ответах найден неизвестный вопрос.';
-    if (!validateIntimacyAnswer(question, answer)) return 'Проверь ответ на вопрос ' + id + '.';
+    if (!validateIntimacyAnswer(question, answer, !requireAll)) return 'Проверь ответ на вопрос ' + id + '.';
   }
   return null;
 }
